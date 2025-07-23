@@ -2,7 +2,6 @@ import {
   Activity,
   ArrowUpRight,
   CreditCard,
-  DollarSign,
   Package,
   Users,
 } from "lucide-react";
@@ -35,7 +34,26 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">
               Total Projects
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 text-muted-foreground"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8c-3.333 0-5 2.667-5 4s1.667 4 5 4 5-2.667 5-4-1.667-4-5-4zm0 5.333a1.333 1.333 0 110-2.666 1.333 1.333 0 010 2.666z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 6h8M8 18h8"
+              />
+            </svg>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12</div>

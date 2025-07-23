@@ -1,1 +1,8 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/waste-reduction-analysis.ts';
+import '@/ai/flows/voice-activated-reporting.ts';
+import '@/ai/flows/material-forecasting.ts';
+import '@/ai/flows/ai-driven-defect-detection.ts';
+import '@/ai/flows/automated-compliance-checks.ts';

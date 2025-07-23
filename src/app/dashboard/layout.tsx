@@ -5,6 +5,7 @@ import {
   Box,
   CheckCheck,
   ClipboardList,
+  FileArchive,
   GanttChartSquare,
   HardHat,
   Home,
@@ -40,6 +41,7 @@ export default function DashboardLayout({
     { href: "/dashboard/usage", icon: ShoppingCart, label: "Daily Usage" },
     { href: "/dashboard/timeline", icon: GanttChartSquare, label: "Timeline" },
     { href: "/dashboard/reports", icon: LineChart, label: "Reports" },
+    { href: "/dashboard/file-sharing", icon: FileArchive, label: "File Sharing" },
   ];
 
   const aiTools = [

@@ -1,6 +1,8 @@
 import {
   Activity,
+  AlertTriangle,
   ArrowUpRight,
+  ClipboardCheck,
   CreditCard,
   Package,
   Users,
@@ -28,6 +30,9 @@ import {
 export default function Dashboard() {
   return (
     <>
+      <div className="flex items-center mb-4">
+        <h1 className="text-lg font-semibold md:text-2xl">Site Manager Dashboard</h1>
+      </div>
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -219,52 +224,71 @@ export default function Dashboard() {
             </Table>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Site Updates</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-8">
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704a" alt="Avatar" />
-                <AvatarFallback>OM</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Olivia Martin</p>
-                <p className="text-sm text-muted-foreground">
-                  Logged usage for Downtown Tower - Level 12.
-                </p>
+        <div className="grid gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Daily Site Briefing</CardTitle>
+              <CardDescription>Key tasks and notes for today.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="flex items-start gap-4">
+                <div className="rounded-full bg-primary/10 p-2 text-primary">
+                  <ClipboardCheck className="h-5 w-5" />
+                </div>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">Critical Tasks</p>
+                  <p className="text-sm text-muted-foreground">
+                    Concrete pour for Level 15 slab. Pre-pour inspection at 9 AM.
+                  </p>
+                </div>
               </div>
-              <div className="ml-auto text-sm text-muted-foreground">1h ago</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704b" alt="Avatar" />
-                <AvatarFallback>JL</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Jackson Lee</p>
-                <p className="text-sm text-muted-foreground">
-                  Received concrete delivery at North Bridge site.
-                </p>
+              <div className="flex items-start gap-4">
+                <div className="rounded-full bg-destructive/10 p-2 text-destructive">
+                 <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">Safety Focus</p>
+                  <p className="text-sm text-muted-foreground">
+                    High-wind advisory. Secure all loose materials. Full PPE required on all levels.
+                  </p>
+                </div>
               </div>
-              <div className="ml-auto text-sm text-muted-foreground">3h ago</div>
-            </div>
-             <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704c" alt="Avatar" />
-                <AvatarFallback>SN</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Sofia Nguyen</p>
-                <p className="text-sm text-muted-foreground">
-                  Flagged potential defect via drone scan.
-                </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Site Updates</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704a" alt="Avatar" />
+                  <AvatarFallback>OM</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">Olivia Martin</p>
+                  <p className="text-sm text-muted-foreground">
+                    Logged usage for Downtown Tower - Level 12.
+                  </p>
+                </div>
+                <div className="ml-auto text-sm text-muted-foreground">1h ago</div>
               </div>
-              <div className="ml-auto text-sm text-muted-foreground">1d ago</div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704b" alt="Avatar" />
+                  <AvatarFallback>JL</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">Jackson Lee</p>
+                  <p className="text-sm text-muted-foreground">
+                    Received concrete delivery at North Bridge site.
+                  </p>
+                </div>
+                <div className="ml-auto text-sm text-muted-foreground">3h ago</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </>
   );

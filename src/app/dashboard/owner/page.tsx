@@ -1,3 +1,6 @@
+
+'use client'
+
 import {
   Activity,
   ArrowUpRight,
@@ -27,6 +30,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const projects = [
   { name: "Downtown Tower", budget: 40000000, spent: 26000000, progress: 65, status: "On Track" },
@@ -38,6 +43,14 @@ const projects = [
 export default function OwnerDashboard() {
   const totalBudget = projects.reduce((acc, p) => acc + p.budget, 0);
   const totalSpent = projects.reduce((acc, p) => acc + p.spent, 0);
+  const router = useRouter();
+
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    if (role !== 'owner') {
+      router.push('/login');
+    }
+  }, [router]);
   
   return (
     <>

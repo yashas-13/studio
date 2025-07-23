@@ -16,10 +16,8 @@ export function LoginForm() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (role === 'owner') {
-      localStorage.setItem('userRole', 'owner');
       router.push('/dashboard/owner');
     } else if (role === 'sitemanager') {
-      localStorage.setItem('userRole', 'sitemanager');
       router.push('/dashboard');
     }
   };
@@ -45,17 +43,16 @@ export function LoginForm() {
                 <SelectContent>
                   <SelectItem value="sitemanager">Site Manager</SelectItem>
                   <SelectItem value="owner">Owner</SelectItem>
-                  <SelectItem value="engineer">Engineer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="m@example.com" required />
+              <Input id="email" type="email" placeholder="m@example.com" required defaultValue="test@example.com" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required />
+              <Input id="password" type="password" required defaultValue="password" />
             </div>
             <Button type="submit" className="w-full">
               Login

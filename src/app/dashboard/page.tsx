@@ -1,3 +1,6 @@
+
+'use client'
+
 import {
   Activity,
   AlertTriangle,
@@ -26,8 +29,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    if (role !== 'sitemanager') {
+      router.push('/login');
+    }
+  }, [router]);
+
   return (
     <>
       <div className="flex items-center mb-4">

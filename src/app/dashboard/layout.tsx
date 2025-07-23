@@ -1,4 +1,8 @@
+
+'use client'
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Bell,
   Bot,
@@ -30,12 +34,18 @@ import {
 } from "@/components/ui/card";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { ConstructWiseLogo } from "@/components/icons";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
+  const pathname = usePathname();
+  const router = useRouter();
+
   const navLinks = [
     { href: "/dashboard", icon: Home, label: "Site Dashboard" },
     { href: "/dashboard/owner", icon: Shield, label: "Owner's Dashboard" },
@@ -54,6 +64,10 @@ export default function DashboardLayout({
     { href: "/dashboard/compliance", icon: CheckCheck, label: "Compliance Checks" },
   ];
 
+  const getActiveLinkClasses = (href: string) => {
+    return pathname === href ? "bg-muted text-primary" : "text-muted-foreground";
+  };
+  
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-card md:block">
@@ -74,7 +88,7 @@ export default function DashboardLayout({
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${getActiveLinkClasses(link.href)}`}
                 >
                   <link.icon className="h-4 w-4" />
                   {link.label}
@@ -94,7 +108,7 @@ export default function DashboardLayout({
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${getActiveLinkClasses(link.href)}`}
                 >
                   <link.icon className="h-4 w-4" />
                   {link.label}

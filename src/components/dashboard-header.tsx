@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Home,
@@ -30,6 +31,12 @@ import { Badge } from "./ui/badge";
 import { ConstructWiseLogo } from "./icons";
 
 export function DashboardHeader() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    router.push('/login');
+  };
+
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
       <Sheet>
@@ -110,7 +117,7 @@ export function DashboardHeader() {
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

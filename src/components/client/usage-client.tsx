@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { db, collection, addDoc, onSnapshot, query, where, getDocs, updateDoc, doc } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, query, where, getDocs, updateDoc, doc, getDoc } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface UsageLog {
@@ -95,14 +95,14 @@ export function UsageClient() {
 
     try {
       const materialDocRef = doc(db, "materials", newLog.materialId);
-      const materialDoc = await getDocs(query(collection(db, "materials"), where("__name__", "==", newLog.materialId)));
+      const materialDocSnap = await getDoc(materialDocRef);
       
-      if (materialDoc.empty) {
+      if (!materialDocSnap.exists()) {
         toast({ title: "Error", description: "Selected material not found.", variant: "destructive" });
         return;
       }
       
-      const materialData = materialDoc.docs[0].data() as Material;
+      const materialData = materialDocSnap.data() as Material;
       const currentStock = materialData.quantity;
 
       if (currentStock < usedQuantity) {

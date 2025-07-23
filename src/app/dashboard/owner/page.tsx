@@ -29,13 +29,16 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 const projects = [
-  { name: "Downtown Tower", budget: 5000000, spent: 3250000, progress: 65, status: "On Track" },
-  { name: "North Bridge", budget: 12000000, spent: 9800000, progress: 82, status: "On Track" },
-  { name: "Suburb Complex", budget: 7500000, spent: 8100000, progress: 95, status: "Over Budget" },
-  { name: "Westgate Mall", budget: 3200000, spent: 1500000, progress: 47, status: "On Track" },
+  { name: "Downtown Tower", budget: 40000000, spent: 26000000, progress: 65, status: "On Track" },
+  { name: "North Bridge", budget: 96000000, spent: 78400000, progress: 82, status: "On Track" },
+  { name: "Suburb Complex", budget: 60000000, spent: 64800000, progress: 95, status: "Over Budget" },
+  { name: "Westgate Mall", budget: 25600000, spent: 12000000, progress: 47, status: "On Track" },
 ];
 
 export default function OwnerDashboard() {
+  const totalBudget = projects.reduce((acc, p) => acc + p.budget, 0);
+  const totalSpent = projects.reduce((acc, p) => acc + p.spent, 0);
+  
   return (
     <>
       <div className="flex items-center mb-4">
@@ -64,7 +67,7 @@ export default function OwnerDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$22.6M / $27.7M</div>
+            <div className="text-2xl font-bold">₹{totalSpent.toLocaleString('en-IN')} / ₹{totalBudget.toLocaleString('en-IN')}</div>
             <p className="text-xs text-muted-foreground">
               Total spent vs. budget
             </p>
@@ -128,7 +131,7 @@ export default function OwnerDashboard() {
                       <div className="font-medium">{p.name}</div>
                     </TableCell>
                     <TableCell>
-                        <div className="font-medium">${p.spent.toLocaleString()} / <span className="text-muted-foreground">${p.budget.toLocaleString()}</span></div>
+                        <div className="font-medium">₹{p.spent.toLocaleString('en-IN')} / <span className="text-muted-foreground">₹{p.budget.toLocaleString('en-IN')}</span></div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-2">

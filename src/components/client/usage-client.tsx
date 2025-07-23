@@ -120,7 +120,7 @@ export function UsageClient() {
       await addDoc(collection(db, "usageLogs"), {
         materialName: materialData.name,
         quantity: usedQuantity,
-        unit: materialData.unit,
+        unit: materialData.unit || '',
         project: newLog.project,
         area: newLog.area,
         notes: newLog.notes,

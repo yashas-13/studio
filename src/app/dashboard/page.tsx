@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { db, collection, addDoc, onSnapshot, getDocs, query, orderBy, limit } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, getDocs, query, orderBy, limit, where } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface Material {
@@ -128,24 +128,36 @@ export default function Dashboard() {
 
   const seedDatabase = async () => {
     try {
-      const materialsSnap = await getDocs(collection(db, "materials"));
-      if (materialsSnap.empty) {
+        let seededCount = 0;
         for (const material of sampleMaterials) {
-            await addDoc(collection(db, "materials"), material);
+            const q = query(collection(db, "materials"), where("name", "==", material.name), where("project", "==", material.project));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                await addDoc(collection(db, "materials"), material);
+                seededCount++;
+            }
         }
-      }
       
-      const filesSnap = await getDocs(collection(db, "files"));
-      if (filesSnap.empty) {
         for (const file of sampleFiles) {
-            await addDoc(collection(db, "files"), file);
+            const q = query(collection(db, "files"), where("name", "==", file.name));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                await addDoc(collection(db, "files"), file);
+                seededCount++;
+            }
         }
-      }
 
-      toast({
-        title: "Success",
-        description: "Sample data has been added to the database.",
-      });
+        if (seededCount > 0) {
+            toast({
+                title: "Success",
+                description: `Added ${seededCount} new sample documents.`,
+            });
+        } else {
+             toast({
+                title: "Database is up to date",
+                description: "All sample data already exists.",
+            });
+        }
 
     } catch (error) {
         console.error("Error seeding database:", error);

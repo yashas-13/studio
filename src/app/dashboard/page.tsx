@@ -54,11 +54,6 @@ const sampleMaterials = [
     { name: "Electrical Wiring", quantity: 5000, unit: "ft", supplier: "Southwire", status: "Delayed", project: "Suburb Complex", lastUpdated: new Date().toISOString() },
 ];
 
-const sampleUsageLogs = [
-    { material: "Ready-Mix Concrete", quantity: "20m³", area: "Level 15 Slab", date: "2024-07-25", user: "S. Admin" },
-    { material: "Plywood Sheets", quantity: "50 sheets", area: "Formwork, Level 15", date: "2024-07-25", user: "S. Admin" },
-];
-
 const sampleFiles = [
     { name: "Architectural-Plans-Rev2.pdf", type: "Document", uploadedBy: "Owner", role: "Owner", date: "2024-07-20", size: "12.5 MB" },
     { name: "Structural-Calculations.xlsx", type: "Spreadsheet", uploadedBy: "Engineer", role: "Engineer", date: "2024-07-21", size: "2.1 MB" },
@@ -98,13 +93,6 @@ export default function Dashboard() {
         }
       }
       
-      const usageLogsSnap = await getDocs(collection(db, "usageLogs"));
-      if (usageLogsSnap.empty) {
-        for (const log of sampleUsageLogs) {
-            await addDoc(collection(db, "usageLogs"), log);
-        }
-      }
-
       const filesSnap = await getDocs(collection(db, "files"));
       if (filesSnap.empty) {
         for (const file of sampleFiles) {
@@ -351,5 +339,5 @@ export default function Dashboard() {
         </div>
       </div>
     </>
-  );
+  )
 }

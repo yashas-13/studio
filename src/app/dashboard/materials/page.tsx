@@ -47,16 +47,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useState } from "react";
-import { db, collection, addDoc, onSnapshot, doc, deleteDoc } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, getDocs, updateDoc, getDoc } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 interface Material {
   id: string;
   name: string;
   supplier: string;
-  status: 'Delivered' | 'Pending' | 'Delayed';
   project: string;
-  date: string;
-  quantity: string;
+  quantity: number;
+  unit: string;
+  lastUpdated: string;
 }
 
 export default function MaterialsPage() {
@@ -65,11 +66,11 @@ export default function MaterialsPage() {
   const [newMaterial, setNewMaterial] = useState({
     name: "",
     supplier: "",
-    status: "Pending" as Material['status'],
     project: "",
-    date: "",
     quantity: "",
+    unit: ""
   });
+  const { toast } = useToast();
 
   useEffect(() => {
     const q = collection(db, "materials");
@@ -78,7 +79,7 @@ export default function MaterialsPage() {
       querySnapshot.forEach((doc) => {
         materialsData.push({ id: doc.id, ...doc.data() } as Material);
       });
-      setMaterials(materialsData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setMaterials(materialsData.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()));
     });
     return () => unsubscribe();
   }, []);
@@ -87,60 +88,69 @@ export default function MaterialsPage() {
     setNewMaterial(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name: string, value: Material['status']) => {
-    setNewMaterial(prev => ({...prev, [name]: value}));
-  }
-
   const handleAddMaterial = async () => {
-    if (!newMaterial.name || !newMaterial.supplier || !newMaterial.project || !newMaterial.date || !newMaterial.quantity) {
-      // Add proper validation/toast message here
+    if (!newMaterial.name || !newMaterial.supplier || !newMaterial.project || !newMaterial.quantity || !newMaterial.unit) {
+      toast({ title: "Error", description: "Please fill all fields.", variant: "destructive" });
       return;
     }
-    await addDoc(collection(db, "materials"), newMaterial);
-    setIsDialogOpen(false);
-    // Reset form
-    setNewMaterial({ name: "", supplier: "", status: "Pending", project: "", date: "", quantity: "" });
+
+    const quantity = parseFloat(newMaterial.quantity);
+    if (isNaN(quantity) || quantity <= 0) {
+      toast({ title: "Error", description: "Please enter a valid quantity.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      // Check if material already exists for the project
+      const q = query(collection(db, "materials"), where("name", "==", newMaterial.name), where("project", "==", newMaterial.project));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // Material exists, update stock
+        const existingDoc = querySnapshot.docs[0];
+        const currentQuantity = existingDoc.data().quantity || 0;
+        await updateDoc(existingDoc.ref, {
+          quantity: currentQuantity + quantity,
+          lastUpdated: new Date().toISOString(),
+          supplier: newMaterial.supplier, // Update supplier to the latest one
+        });
+        toast({ title: "Success", description: `Updated stock for ${newMaterial.name}.` });
+      } else {
+        // New material, add to inventory
+        await addDoc(collection(db, "materials"), {
+          name: newMaterial.name,
+          supplier: newMaterial.supplier,
+          project: newMaterial.project,
+          quantity: quantity,
+          unit: newMaterial.unit,
+          lastUpdated: new Date().toISOString(),
+        });
+        toast({ title: "Success", description: `${newMaterial.name} added to inventory.` });
+      }
+
+      setIsDialogOpen(false);
+      setNewMaterial({ name: "", supplier: "", project: "", quantity: "", unit: "" });
+
+    } catch (error) {
+      console.error("Error adding material: ", error);
+      toast({ title: "Error", description: "Could not add or update material.", variant: "destructive" });
+    }
   };
-  
+
   const handleDeleteMaterial = async (id: string) => {
-      await deleteDoc(doc(db, "materials", id));
+    await deleteDoc(doc(db, "materials", id));
   }
 
   return (
     <>
       <div className="flex flex-col gap-4">
         <div className="flex items-center">
-          <h1 className="text-lg font-semibold md:text-2xl">Material Logs</h1>
+          <h1 className="text-lg font-semibold md:text-2xl">Materials Inventory</h1>
           <div className="ml-auto flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1">
-                  <ListFilter className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Filter
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Filter by</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem checked>
-                  Delivered
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Pending</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Delayed</DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="sm" variant="outline" className="h-8 gap-1">
-              <File className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Export
-              </span>
-            </Button>
             <Button size="sm" className="h-8 gap-1" onClick={() => setIsDialogOpen(true)}>
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Log Delivery
+                Add Material
               </span>
             </Button>
           </div>
@@ -151,12 +161,11 @@ export default function MaterialsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Material</TableHead>
-                  <TableHead>Quantity</TableHead>
+                  <TableHead>Current Stock</TableHead>
                   <TableHead>Supplier</TableHead>
-                  <TableHead className="hidden md:table-cell">Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Project</TableHead>
+                  <TableHead>Project</TableHead>
                   <TableHead className="hidden md:table-cell">
-                    Delivery Date
+                    Last Updated
                   </TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
@@ -165,46 +174,40 @@ export default function MaterialsPage() {
               </TableHeader>
               <TableBody>
                 {materials.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{item.supplier}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <Badge variant={item.status === 'Delivered' ? 'secondary' : item.status === 'Pending' ? 'outline' : 'destructive'}>{item.status}</Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {item.project}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {item.date}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          aria-haspopup="true"
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteMaterial(item.id)} className="text-destructive">Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>{`${item.quantity} ${item.unit}`}</TableCell>
+                    <TableCell>{item.supplier}</TableCell>
+                    <TableCell>{item.project}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {new Date(item.lastUpdated).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleDeleteMaterial(item.id)} className="text-destructive">Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>
           </CardContent>
           <CardFooter>
             <div className="text-xs text-muted-foreground">
-              Showing <strong>1-{materials.length}</strong> of <strong>{materials.length}</strong> logs
+              Showing <strong>{materials.length}</strong> of <strong>{materials.length}</strong> materials
             </div>
           </CardFooter>
         </Card>
@@ -213,51 +216,38 @@ export default function MaterialsPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Log New Material Delivery</DialogTitle>
+            <DialogTitle>Add New Material to Inventory</DialogTitle>
             <DialogDescription>
-              Fill in the details of the new material delivery.
+              Fill in the details to add or update material stock.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">Material</Label>
-              <Input id="name" value={newMaterial.name} onChange={(e) => handleInputChange('name', e.target.value)} className="col-span-3" />
+              <Input id="name" value={newMaterial.name} onChange={(e) => handleInputChange('name', e.target.value)} className="col-span-3" placeholder="e.g., Ready-Mix Concrete" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="quantity" className="text-right">Quantity</Label>
-              <Input id="quantity" value={newMaterial.quantity} onChange={(e) => handleInputChange('quantity', e.target.value)} className="col-span-3" placeholder="e.g., 50m³" />
+              <Input id="quantity" type="number" value={newMaterial.quantity} onChange={(e) => handleInputChange('quantity', e.target.value)} className="col-span-3" placeholder="e.g., 50" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="unit" className="text-right">Unit</Label>
+              <Input id="unit" value={newMaterial.unit} onChange={(e) => handleInputChange('unit', e.target.value)} className="col-span-3" placeholder="e.g., m³, tons, sheets" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="supplier" className="text-right">Supplier</Label>
               <Input id="supplier" value={newMaterial.supplier} onChange={(e) => handleInputChange('supplier', e.target.value)} className="col-span-3" />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="status" className="text-right">Status</Label>
-                <Select value={newMaterial.status} onValueChange={(value: Material['status']) => handleSelectChange('status', value)}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Delivered">Delivered</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Delayed">Delayed</SelectItem>
-                  </SelectContent>
-                </Select>
-            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="project" className="text-right">Project</Label>
-              <Input id="project" value={newMaterial.project} onChange={(e) => handleInputChange('project', e.target.value)} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="text-right">Delivery Date</Label>
-              <Input id="date" type="date" value={newMaterial.date} onChange={(e) => handleInputChange('date', e.target.value)} className="col-span-3" />
+              <Input id="project" value={newMaterial.project} onChange={(e) => handleInputChange('project', e.target.value)} className="col-span-3" placeholder="e.g., Downtown Tower" />
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleAddMaterial}>Save Delivery</Button>
+            <Button onClick={handleAddMaterial}>Save Material</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

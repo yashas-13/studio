@@ -9,12 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { db, collection, addDoc, onSnapshot } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, query, where, getDocs, updateDoc, doc } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 interface UsageLog {
   id: string;
-  material: string;
-  quantity: string;
+  materialName: string;
+  quantity: number;
+  unit: string;
+  project: string;
   area: string;
   date: string;
   user: string;
@@ -24,17 +27,23 @@ interface UsageLog {
 interface Material {
   id: string;
   name: string;
+  project: string;
+  quantity: number;
+  unit: string;
 }
 
 export function UsageClient() {
   const [logs, setLogs] = useState<UsageLog[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
   const [newLog, setNewLog] = useState({
-    material: "",
+    materialId: "",
     quantity: "",
     area: "",
     notes: "",
+    project: ""
   });
+  const { toast } = useToast();
 
   useEffect(() => {
     const qLogs = collection(db, "usageLogs");
@@ -43,23 +52,29 @@ export function UsageClient() {
       querySnapshot.forEach((doc) => {
         logsData.push({ id: doc.id, ...doc.data() } as UsageLog);
       });
-      setLogs(logsData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     });
-    
+
     const qMaterials = collection(db, "materials");
     const unsubscribeMaterials = onSnapshot(qMaterials, (querySnapshot) => {
-        const materialsData: Material[] = [];
-        querySnapshot.forEach((doc) => {
-            materialsData.push({ id: doc.id, ...doc.data() } as Material);
-        });
-        setMaterials(materialsData);
+      const materialsData: Material[] = [];
+      querySnapshot.forEach((doc) => {
+        materialsData.push({ id: doc.id, ...doc.data() } as Material);
+      });
+      setMaterials(materialsData);
     });
 
     return () => {
-        unsubscribeLogs();
-        unsubscribeMaterials();
+      unsubscribeLogs();
+      unsubscribeMaterials();
     };
   }, []);
+
+  const handleProjectChange = (projectName: string) => {
+    setNewLog(prev => ({ ...prev, project: projectName, materialId: "" }));
+    const projectMaterials = materials.filter(m => m.project === projectName);
+    setFilteredMaterials(projectMaterials);
+  };
 
   const handleInputChange = (name: string, value: string) => {
     setNewLog(prev => ({ ...prev, [name]: value }));
@@ -67,21 +82,64 @@ export function UsageClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLog.material || !newLog.quantity || !newLog.area) {
-        // Basic validation
-        return;
+    if (!newLog.materialId || !newLog.quantity || !newLog.area || !newLog.project) {
+      toast({ title: "Error", description: "Please fill all required fields.", variant: "destructive" });
+      return;
     }
 
-    await addDoc(collection(db, "usageLogs"), {
-        ...newLog,
-        date: new Date().toISOString().split("T")[0],
-        user: "S. Admin" // Placeholder user
-    });
+    const usedQuantity = parseFloat(newLog.quantity);
+    if (isNaN(usedQuantity) || usedQuantity <= 0) {
+      toast({ title: "Error", description: "Please enter a valid quantity.", variant: "destructive" });
+      return;
+    }
 
-    // Reset form
-    setNewLog({ material: "", quantity: "", area: "", notes: "" });
+    try {
+      const materialDocRef = doc(db, "materials", newLog.materialId);
+      const materialDoc = await getDocs(query(collection(db, "materials"), where("__name__", "==", newLog.materialId)));
+      
+      if (materialDoc.empty) {
+        toast({ title: "Error", description: "Selected material not found.", variant: "destructive" });
+        return;
+      }
+      
+      const materialData = materialDoc.docs[0].data() as Material;
+      const currentStock = materialData.quantity;
+
+      if (currentStock < usedQuantity) {
+        toast({ title: "Error", description: `Not enough stock. Only ${currentStock} ${materialData.unit} available.`, variant: "destructive" });
+        return;
+      }
+
+      // Reduce stock
+      await updateDoc(materialDocRef, {
+        quantity: currentStock - usedQuantity,
+        lastUpdated: new Date().toISOString()
+      });
+
+      // Add usage log
+      await addDoc(collection(db, "usageLogs"), {
+        materialName: materialData.name,
+        quantity: usedQuantity,
+        unit: materialData.unit,
+        project: newLog.project,
+        area: newLog.area,
+        notes: newLog.notes,
+        date: new Date().toISOString(),
+        user: "S. Admin" // Placeholder user
+      });
+      
+      toast({ title: "Success", description: "Usage logged and inventory updated." });
+
+      // Reset form
+      setNewLog({ materialId: "", quantity: "", area: "", notes: "", project: newLog.project });
+
+    } catch (error) {
+      console.error("Error logging usage: ", error);
+      toast({ title: "Error", description: "Could not log usage.", variant: "destructive" });
+    }
   };
 
+  const uniqueProjects = [...new Set(materials.map(m => m.project))];
 
   return (
     <div className="grid flex-1 items-start gap-4 lg:grid-cols-3 lg:gap-8">
@@ -98,7 +156,7 @@ export function UsageClient() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Material</TableHead>
-                  <TableHead>Quantity</TableHead>
+                  <TableHead>Quantity Used</TableHead>
                   <TableHead className="hidden md:table-cell">Project Area</TableHead>
                   <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead className="hidden md:table-cell">Logged By</TableHead>
@@ -107,10 +165,10 @@ export function UsageClient() {
               <TableBody>
                 {logs.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.material}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell className="font-medium">{item.materialName} ({item.project})</TableCell>
+                    <TableCell>{`${item.quantity} ${item.unit}`}</TableCell>
                     <TableCell className="hidden md:table-cell">{item.area}</TableCell>
-                    <TableCell className="hidden md:table-cell">{item.date}</TableCell>
+                    <TableCell className="hidden md:table-cell">{new Date(item.date).toLocaleDateString()}</TableCell>
                     <TableCell className="hidden md:table-cell">{item.user}</TableCell>
                   </TableRow>
                 ))}
@@ -124,42 +182,55 @@ export function UsageClient() {
           <CardHeader>
             <CardTitle>Log Material Consumption</CardTitle>
             <CardDescription>
-              Fill out the form to track daily usage.
+              Fill out the form to track daily usage and update inventory.
             </CardDescription>
           </CardHeader>
-           <form onSubmit={handleSubmit}>
-          <CardContent>
-            <div className="grid gap-6">
-              <div className="grid gap-3">
-                <Label htmlFor="material-type">Material Type</Label>
-                <Select value={newLog.material} onValueChange={(value) => handleInputChange('material', value)}>
-                  <SelectTrigger id="material-type" aria-label="Select material">
-                    <SelectValue placeholder="Select material" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {materials.map((material) => (
-                        <SelectItem key={material.id} value={material.name}>{material.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <form onSubmit={handleSubmit}>
+            <CardContent>
+              <div className="grid gap-6">
+                 <div className="grid gap-3">
+                  <Label htmlFor="project">Project</Label>
+                  <Select value={newLog.project} onValueChange={handleProjectChange}>
+                    <SelectTrigger id="project" aria-label="Select project">
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueProjects.map((project) => (
+                        <SelectItem key={project} value={project}>{project}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-3">
+                  <Label htmlFor="material-type">Material Type</Label>
+                  <Select value={newLog.materialId} onValueChange={(value) => handleInputChange('materialId', value)} disabled={!newLog.project}>
+                    <SelectTrigger id="material-type" aria-label="Select material">
+                      <SelectValue placeholder="Select material" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredMaterials.map((material) => (
+                        <SelectItem key={material.id} value={material.id}>{material.name} ({material.quantity} {material.unit})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-3">
+                  <Label htmlFor="quantity">Quantity Used</Label>
+                  <Input id="quantity" type="number" placeholder="e.g., 15" value={newLog.quantity} onChange={(e) => handleInputChange('quantity', e.target.value)} />
+                </div>
+                <div className="grid gap-3">
+                  <Label htmlFor="project-area">Project Area</Label>
+                  <Input id="project-area" type="text" placeholder="e.g., Level 12, West Wing" value={newLog.area} onChange={(e) => handleInputChange('area', e.target.value)} />
+                </div>
+                <div className="grid gap-3">
+                  <Label htmlFor="notes">Notes (optional)</Label>
+                  <Textarea id="notes" placeholder="Any additional notes..." value={newLog.notes} onChange={(e) => handleInputChange('notes', e.target.value)} />
+                </div>
               </div>
-              <div className="grid gap-3">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" type="text" placeholder="e.g., 15 m³" value={newLog.quantity} onChange={(e) => handleInputChange('quantity', e.target.value)} />
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="project-area">Project Area</Label>
-                <Input id="project-area" type="text" placeholder="e.g., Level 12, West Wing" value={newLog.area} onChange={(e) => handleInputChange('area', e.target.value)} />
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="notes">Notes (optional)</Label>
-                <Textarea id="notes" placeholder="Any additional notes..." value={newLog.notes} onChange={(e) => handleInputChange('notes', e.target.value)} />
-              </div>
-            </div>
-          </CardContent>
-          <CardContent>
-            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Submit Usage Log</Button>
-          </CardContent>
+            </CardContent>
+            <CardContent>
+              <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Submit Usage Log</Button>
+            </CardContent>
           </form>
         </Card>
       </div>

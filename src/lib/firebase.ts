@@ -1,6 +1,6 @@
 // This file is machine-generated - edit at your own risk.
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, getDocs } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBLtMzqEa_y81OJNCRbnxNPems9NLMxRgI",
@@ -14,4 +14,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-export { db, collection, addDoc, onSnapshot, doc, deleteDoc };
+export { db, collection, addDoc, onSnapshot, doc, deleteDoc, getDocs };
+
+    

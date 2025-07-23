@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   ClipboardCheck,
   CreditCard,
+  Database,
   Package,
   Users,
 } from "lucide-react";
@@ -29,23 +30,112 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { collection, addDoc, onSnapshot, getDocs } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+
+interface Material {
+  id: string;
+  name: string;
+  supplier: string;
+  status: 'Delivered' | 'Pending' | 'Delayed';
+  project: string;
+  date: string;
+  quantity: string;
+}
+
+const sampleMaterials = [
+    { name: "Ready-Mix Concrete", quantity: "50m³", supplier: "CEMEX", status: "Delivered", project: "Downtown Tower", date: "2024-07-25" },
+    { name: "Steel Rebar", quantity: "10 tons", supplier: "Gerdau", status: "Pending", project: "North Bridge", date: "2024-07-28" },
+    { name: "Plywood Sheets", quantity: "200 sheets", supplier: "Georgia-Pacific", status: "Delivered", project: "Downtown Tower", date: "2024-07-24" },
+    { name: "Electrical Wiring", quantity: "5000 ft", supplier: "Southwire", status: "Delayed", project: "Suburb Complex", date: "2024-07-26" },
+];
+
+const sampleUsageLogs = [
+    { material: "Ready-Mix Concrete", quantity: "20m³", area: "Level 15 Slab", date: "2024-07-25", user: "S. Admin" },
+    { material: "Plywood Sheets", quantity: "50 sheets", area: "Formwork, Level 15", date: "2024-07-25", user: "S. Admin" },
+];
+
+const sampleFiles = [
+    { name: "Architectural-Plans-Rev2.pdf", type: "Document", uploadedBy: "Owner", role: "Owner", date: "2024-07-20", size: "12.5 MB" },
+    { name: "Structural-Calculations.xlsx", type: "Spreadsheet", uploadedBy: "Engineer", role: "Engineer", date: "2024-07-21", size: "2.1 MB" },
+    { name: "Site-Photo-2024-07-22.jpg", type: "Image", uploadedBy: "Site Admin", role: "Admin", date: "2024-07-22", size: "4.8 MB" },
+];
 
 export default function Dashboard() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [recentDeliveries, setRecentDeliveries] = useState<Material[]>([]);
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     if (role !== 'sitemanager') {
       router.push('/login');
     }
+
+    const q = collection(db, "materials");
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const materialsData: Material[] = [];
+        querySnapshot.forEach((doc) => {
+            materialsData.push({ id: doc.id, ...doc.data() } as Material);
+        });
+        setRecentDeliveries(materialsData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4));
+    });
+
+    return () => unsubscribe();
   }, [router]);
+
+  const seedDatabase = async () => {
+    try {
+      // Check if collections are empty before seeding
+      const materialsSnap = await getDocs(collection(db, "materials"));
+      if (materialsSnap.empty) {
+        for (const material of sampleMaterials) {
+            await addDoc(collection(db, "materials"), material);
+        }
+      }
+      
+      const usageLogsSnap = await getDocs(collection(db, "usageLogs"));
+      if (usageLogsSnap.empty) {
+        for (const log of sampleUsageLogs) {
+            await addDoc(collection(db, "usageLogs"), log);
+        }
+      }
+
+      const filesSnap = await getDocs(collection(db, "files"));
+      if (filesSnap.empty) {
+        for (const file of sampleFiles) {
+            await addDoc(collection(db, "files"), file);
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: "Sample data has been added to the database.",
+      });
+
+    } catch (error) {
+        console.error("Error seeding database:", error);
+        toast({
+            title: "Error",
+            description: "Could not seed the database.",
+            variant: "destructive",
+        })
+    }
+  };
 
   return (
     <>
       <div className="flex items-center mb-4">
         <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
+        <div className="ml-auto">
+            <Button onClick={seedDatabase}>
+                <Database className="mr-2 h-4 w-4" />
+                Seed Sample Data
+            </Button>
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>
@@ -154,86 +244,34 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <div className="font-medium">Ready-Mix Concrete</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                      CEMEX
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden xl:table-column">
-                    Supplier A
-                  </TableCell>
-                  <TableCell className="hidden xl:table-column">
-                    <Badge className="text-xs" variant="outline">
-                      Delivered
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    2024-07-25
-                  </TableCell>
-                  <TableCell className="text-right">50 m³</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <div className="font-medium">Steel Rebar</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                      Gerdau
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden xl:table-column">
-                    Supplier B
-                  </TableCell>
-                  <TableCell className="hidden xl:table-column">
-                    <Badge className="text-xs" variant="outline">
-                      Pending
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    2024-07-28
-                  </TableCell>
-                  <TableCell className="text-right">10 tons</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <div className="font-medium">Plywood Sheets</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                      Georgia-Pacific
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden xl:table-column">
-                    Supplier C
-                  </TableCell>
-                  <TableCell className="hidden xl:table-column">
-                    <Badge className="text-xs" variant="outline">
-                      Delivered
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    2024-07-24
-                  </TableCell>
-                  <TableCell className="text-right">200 sheets</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <div className="font-medium">Electrical Wiring</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                      Southwire
-                    </div>
-                  </TableCell>
-                   <TableCell className="hidden xl:table-column">
-                    Supplier D
-                  </TableCell>
-                  <TableCell className="hidden xl:table-column">
-                    <Badge className="text-xs" variant="outline">
-                      Delayed
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    2024-07-26
-                  </TableCell>
-                  <TableCell className="text-right">5000 ft</TableCell>
-                </TableRow>
+                {recentDeliveries.length === 0 ? (
+                   <TableRow>
+                        <TableCell colSpan={5} className="text-center h-24">
+                            No recent deliveries. Try seeding some data.
+                        </TableCell>
+                    </TableRow>
+                ) : (
+                    recentDeliveries.map((delivery) => (
+                    <TableRow key={delivery.id}>
+                        <TableCell>
+                            <div className="font-medium">{delivery.name}</div>
+                            <div className="hidden text-sm text-muted-foreground md:inline">
+                                {delivery.supplier}
+                            </div>
+                        </TableCell>
+                        <TableCell className="hidden xl:table-column">
+                           {delivery.supplier}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-column">
+                            <Badge variant={delivery.status === 'Delivered' ? 'secondary' : delivery.status === 'Pending' ? 'outline' : 'destructive'}>{delivery.status}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                           {delivery.date}
+                        </TableCell>
+                        <TableCell className="text-right">{delivery.quantity}</TableCell>
+                    </TableRow>
+                    ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -307,3 +345,5 @@ export default function Dashboard() {
     </>
   );
 }
+
+    

@@ -77,9 +77,17 @@ export default function MaterialsPage() {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const materialsData: Material[] = [];
       querySnapshot.forEach((doc) => {
-        materialsData.push({ id: doc.id, ...doc.data() } as Material);
+        const data = doc.data();
+        // Basic data validation
+        if (data.name && data.lastUpdated) {
+            materialsData.push({ id: doc.id, ...data } as Material);
+        }
       });
-      setMaterials(materialsData.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()));
+      setMaterials(materialsData.sort((a, b) => {
+          const dateA = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
+          const dateB = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
+          return dateB - dateA;
+      }));
     });
     return () => unsubscribe();
   }, []);
@@ -140,6 +148,13 @@ export default function MaterialsPage() {
   const handleDeleteMaterial = async (id: string) => {
     await deleteDoc(doc(db, "materials", id));
   }
+  
+  const formatLastUpdated = (dateString: string) => {
+    if (!dateString || isNaN(new Date(dateString).getTime())) {
+      return 'N/A';
+    }
+    return new Date(dateString).toLocaleString();
+  };
 
   return (
     <>
@@ -176,11 +191,11 @@ export default function MaterialsPage() {
                 {materials.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{`${item.quantity} ${item.unit}`}</TableCell>
+                    <TableCell>{`${item.quantity ?? 0} ${item.unit ?? ''}`.trim()}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>{item.project}</TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {new Date(item.lastUpdated).toLocaleString()}
+                      {formatLastUpdated(item.lastUpdated)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -34,6 +35,7 @@ export function DashboardHeader() {
   const router = useRouter();
 
   const handleLogout = () => {
+    localStorage.removeItem('userRole');
     router.push('/login');
   };
 
@@ -112,7 +114,7 @@ export function DashboardHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Site Admin</DropdownMenuLabel>
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>

@@ -165,8 +165,10 @@ export function UsageClient() {
               <TableBody>
                 {logs.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.materialName} ({item.project})</TableCell>
-                    <TableCell>{`${item.quantity} ${item.unit}`}</TableCell>
+                    <TableCell className="font-medium">
+                        {item.materialName ? `${item.materialName} (${item.project || 'N/A'})` : 'N/A'}
+                    </TableCell>
+                    <TableCell>{`${item.quantity || 0} ${item.unit || ''}`.trim()}</TableCell>
                     <TableCell className="hidden md:table-cell">{item.area}</TableCell>
                     <TableCell className="hidden md:table-cell">{new Date(item.date).toLocaleDateString()}</TableCell>
                     <TableCell className="hidden md:table-cell">{item.user}</TableCell>

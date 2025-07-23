@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,8 +21,14 @@ interface UsageLog {
   notes?: string;
 }
 
+interface Material {
+  id: string;
+  name: string;
+}
+
 export function UsageClient() {
   const [logs, setLogs] = useState<UsageLog[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [newLog, setNewLog] = useState({
     material: "",
     quantity: "",
@@ -30,16 +37,28 @@ export function UsageClient() {
   });
 
   useEffect(() => {
-    const q = collection(db, "usageLogs");
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const qLogs = collection(db, "usageLogs");
+    const unsubscribeLogs = onSnapshot(qLogs, (querySnapshot) => {
       const logsData: UsageLog[] = [];
       querySnapshot.forEach((doc) => {
         logsData.push({ id: doc.id, ...doc.data() } as UsageLog);
       });
       setLogs(logsData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     });
+    
+    const qMaterials = collection(db, "materials");
+    const unsubscribeMaterials = onSnapshot(qMaterials, (querySnapshot) => {
+        const materialsData: Material[] = [];
+        querySnapshot.forEach((doc) => {
+            materialsData.push({ id: doc.id, ...doc.data() } as Material);
+        });
+        setMaterials(materialsData);
+    });
 
-    return () => unsubscribe();
+    return () => {
+        unsubscribeLogs();
+        unsubscribeMaterials();
+    };
   }, []);
 
   const handleInputChange = (name: string, value: string) => {
@@ -118,10 +137,9 @@ export function UsageClient() {
                     <SelectValue placeholder="Select material" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Ready-Mix Concrete">Ready-Mix Concrete</SelectItem>
-                    <SelectItem value="Steel Rebar">Steel Rebar</SelectItem>
-                    <SelectItem value="Plywood Sheets">Plywood Sheets</SelectItem>
-                    <SelectItem value="Electrical Wiring">Electrical Wiring</SelectItem>
+                    {materials.map((material) => (
+                        <SelectItem key={material.id} value={material.name}>{material.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

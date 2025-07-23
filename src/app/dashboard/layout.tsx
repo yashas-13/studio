@@ -12,6 +12,7 @@ import {
   LineChart,
   Package,
   Package2,
+  Shield,
   ShoppingCart,
   SlidersHorizontal,
   Users,
@@ -36,7 +37,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const navLinks = [
-    { href: "/dashboard", icon: Home, label: "Dashboard" },
+    { href: "/dashboard", icon: Home, label: "Site Dashboard" },
+    { href: "/dashboard/owner", icon: Shield, label: "Owner's Dashboard" },
     { href: "/dashboard/materials", icon: Package, label: "Materials Log", badge: "12" },
     { href: "/dashboard/usage", icon: ShoppingCart, label: "Daily Usage" },
     { href: "/dashboard/timeline", icon: GanttChartSquare, label: "Timeline" },

@@ -61,9 +61,9 @@ export default function Dashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">4</div>
             <p className="text-xs text-muted-foreground">
-              +2 since last month
+              -1 since last month
             </p>
           </CardContent>
         </Card>
@@ -99,9 +99,9 @@ export default function Dashboard() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
+            <div className="text-2xl font-bold">4</div>
             <p className="text-xs text-muted-foreground">
-              +1 since last week
+              All sites operational
             </p>
           </CardContent>
         </Card>

@@ -42,15 +42,16 @@ interface Material {
   supplier: string;
   status: 'Delivered' | 'Pending' | 'Delayed';
   project: string;
-  date: string;
-  quantity: string;
+  quantity: number;
+  unit: string;
+  lastUpdated: string;
 }
 
 const sampleMaterials = [
-    { name: "Ready-Mix Concrete", quantity: "50m³", supplier: "CEMEX", status: "Delivered", project: "Downtown Tower", date: "2024-07-25" },
-    { name: "Steel Rebar", quantity: "10 tons", supplier: "Gerdau", status: "Pending", project: "North Bridge", date: "2024-07-28" },
-    { name: "Plywood Sheets", quantity: "200 sheets", supplier: "Georgia-Pacific", status: "Delivered", project: "Downtown Tower", date: "2024-07-24" },
-    { name: "Electrical Wiring", quantity: "5000 ft", supplier: "Southwire", status: "Delayed", project: "Suburb Complex", date: "2024-07-26" },
+    { name: "Ready-Mix Concrete", quantity: 50, unit: "m³", supplier: "CEMEX", status: "Delivered", project: "Downtown Tower", lastUpdated: new Date().toISOString() },
+    { name: "Steel Rebar", quantity: 10, unit: "tons", supplier: "Gerdau", status: "Pending", project: "North Bridge", lastUpdated: new Date().toISOString() },
+    { name: "Plywood Sheets", quantity: 200, unit: "sheets", supplier: "Georgia-Pacific", status: "Delivered", project: "Downtown Tower", lastUpdated: new Date().toISOString() },
+    { name: "Electrical Wiring", quantity: 5000, unit: "ft", supplier: "Southwire", status: "Delayed", project: "Suburb Complex", lastUpdated: new Date().toISOString() },
 ];
 
 const sampleUsageLogs = [
@@ -81,7 +82,7 @@ export default function Dashboard() {
         querySnapshot.forEach((doc) => {
             materialsData.push({ id: doc.id, ...doc.data() } as Material);
         });
-        setRecentDeliveries(materialsData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4));
+        setRecentDeliveries(materialsData.sort((a,b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()).slice(0, 4));
     });
 
     return () => unsubscribe();
@@ -124,6 +125,13 @@ export default function Dashboard() {
             variant: "destructive",
         })
     }
+  };
+  
+  const formatLastUpdated = (dateString: string) => {
+    if (!dateString || isNaN(new Date(dateString).getTime())) {
+      return 'N/A';
+    }
+    return new Date(dateString).toLocaleDateString();
   };
 
   return (
@@ -266,9 +274,9 @@ export default function Dashboard() {
                             <Badge variant={delivery.status === 'Delivered' ? 'secondary' : delivery.status === 'Pending' ? 'outline' : 'destructive'}>{delivery.status}</Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                           {delivery.date}
+                           {formatLastUpdated(delivery.lastUpdated)}
                         </TableCell>
-                        <TableCell className="text-right">{delivery.quantity}</TableCell>
+                        <TableCell className="text-right">{`${delivery.quantity} ${delivery.unit}`}</TableCell>
                     </TableRow>
                     ))
                 )}
@@ -345,5 +353,3 @@ export default function Dashboard() {
     </>
   );
 }
-
-    

@@ -57,6 +57,7 @@ interface Material {
   project: string;
   quantity: number;
   unit: string;
+  status: 'Delivered' | 'Pending' | 'Delayed';
   lastUpdated: string;
 }
 
@@ -117,6 +118,7 @@ export default function MaterialsPage() {
           quantity: currentQuantity + quantity,
           lastUpdated: new Date().toISOString(),
           supplier: newMaterial.supplier, // Update supplier to the latest one
+          status: "Delivered",
         });
         toast({ title: "Success", description: `Updated stock for ${newMaterial.name}.` });
       } else {
@@ -153,6 +155,19 @@ export default function MaterialsPage() {
     return new Date(dateString).toLocaleString();
   };
 
+  const getStatusVariant = (status: string): "secondary" | "outline" | "destructive" | "default" => {
+    switch (status) {
+      case "Delivered":
+        return "secondary";
+      case "Pending":
+        return "outline";
+      case "Delayed":
+        return "destructive";
+      default:
+        return "default";
+    }
+  }
+
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -173,6 +188,7 @@ export default function MaterialsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Material</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Current Stock</TableHead>
                   <TableHead>Supplier</TableHead>
                   <TableHead>Project</TableHead>
@@ -188,6 +204,9 @@ export default function MaterialsPage() {
                 {materials.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>
+                    </TableCell>
                     <TableCell>{`${item.quantity ?? 0} ${item.unit ?? ''}`.trim()}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>{item.project}</TableCell>

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { db, collection, addDoc, onSnapshot, query, where, getDocs, updateDoc, doc, getDoc } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, doc, updateDoc, getDoc } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface UsageLog {
@@ -120,7 +120,7 @@ export function UsageClient() {
       await addDoc(collection(db, "usageLogs"), {
         materialName: materialData.name,
         quantity: usedQuantity,
-        unit: materialData.unit, // Ensure unit is passed correctly
+        unit: materialData.unit,
         project: newLog.project,
         area: newLog.area,
         notes: newLog.notes,

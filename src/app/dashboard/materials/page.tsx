@@ -131,6 +131,7 @@ export default function MaterialsPage() {
           project: newMaterial.project,
           quantity: quantity,
           unit: newMaterial.unit,
+          status: "Delivered",
           lastUpdated: new Date().toISOString(),
         });
         toast({ title: "Success", description: `${newMaterial.name} added to inventory.` });

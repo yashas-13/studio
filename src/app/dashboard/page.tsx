@@ -32,8 +32,7 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { collection, addDoc, onSnapshot, getDocs } from "@/lib/firebase";
-import { db } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, getDocs } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface Material {
@@ -339,5 +338,5 @@ export default function Dashboard() {
         </div>
       </div>
     </>
-  )
+  );
 }

@@ -56,7 +56,7 @@ export default function DashboardLayout({
       // Redirect if user is on the wrong dashboard
       if (role === 'owner' && !pathname.startsWith('/dashboard/owner')) {
         // Allow access to file sharing for owner
-        if (!pathname.startsWith('/dashboard/file-sharing')) {
+        if (!pathname.startsWith('/dashboard/file-sharing') && !pathname.startsWith('/dashboard/users')) {
            // router.push('/dashboard/owner');
         }
       } else if (role === 'sitemanager' && pathname.startsWith('/dashboard/owner')) {
@@ -67,8 +67,8 @@ export default function DashboardLayout({
 
   const ownerNavLinks = [
     { href: "/dashboard/owner", icon: Shield, label: "Owner's View" },
-    { href: "/dashboard/reports", icon: LineChart, label: "Reports" },
-    { href: "/dashboard/timeline", icon: GanttChartSquare, label: "Timeline" },
+    { href: "/dashboard/owner/projects", icon: GanttChartSquare, label: "Projects" },
+    { href: "/dashboard/users", icon: Users, label: "Users" },
     { href: "/dashboard/file-sharing", icon: FileArchive, label: "Files" },
   ];
 

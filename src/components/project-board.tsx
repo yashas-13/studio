@@ -6,6 +6,7 @@ import { type Project } from "@/app/dashboard/owner/projects/page";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
+import { MapPin } from "lucide-react";
 
 interface ProjectBoardProps {
   projects: Project[];
@@ -20,6 +21,10 @@ export function ProjectBoard({ projects, loading }: ProjectBoardProps) {
     <Card key={project.id} className="mb-4">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium">{project.name}</CardTitle>
+        <div className="flex items-center text-xs text-muted-foreground pt-1">
+            <MapPin className="h-3 w-3 mr-1" />
+            {project.location}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">{project.description}</p>

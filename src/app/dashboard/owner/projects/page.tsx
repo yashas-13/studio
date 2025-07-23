@@ -13,6 +13,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
+  location: string;
   siteEngineer: string;
   status: 'Planning' | 'In Progress' | 'Completed';
   createdAt: any;

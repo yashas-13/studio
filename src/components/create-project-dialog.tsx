@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { db, collection, addDoc, serverTimestamp } from "@/lib/firebase";
+import { db, collection, addDoc, serverTimestamp, onSnapshot } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreateProjectDialogProps {
@@ -24,17 +24,37 @@ interface CreateProjectDialogProps {
     onOpenChange: (isOpen: boolean) => void;
 }
 
-const siteEngineers = ["S. Admin", "Olivia Martin", "Jackson Lee"];
+interface SiteManager {
+    id: string;
+    name: string;
+}
 
 export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialogProps) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [location, setLocation] = useState("");
     const [siteEngineer, setSiteEngineer] = useState("");
+    const [siteManagers, setSiteManagers] = useState<SiteManager[]>([]);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
+    useEffect(() => {
+        const q = collection(db, "users");
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const managers: SiteManager[] = [];
+            querySnapshot.forEach((doc) => {
+                if(doc.data().role === 'sitemanager') {
+                    managers.push({ id: doc.id, name: doc.data().name });
+                }
+            });
+            setSiteManagers(managers);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
     const handleSubmit = async () => {
-        if (!name || !description || !siteEngineer) {
+        if (!name || !description || !siteEngineer || !location) {
             toast({ title: "Error", description: "Please fill all fields.", variant: "destructive" });
             return;
         }
@@ -43,6 +63,7 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
             await addDoc(collection(db, "projects"), {
                 name,
                 description,
+                location,
                 siteEngineer,
                 status: "Planning",
                 createdAt: serverTimestamp(),
@@ -52,6 +73,7 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
             // Reset form
             setName("");
             setDescription("");
+            setLocation("");
             setSiteEngineer("");
         } catch (error) {
             console.error("Error creating project:", error);
@@ -75,19 +97,23 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
                     <Label htmlFor="name" className="text-right">Name</Label>
                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" placeholder="e.g., Downtown Tower Renovation" />
                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="location" className="text-right">Location</Label>
+                    <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} className="col-span-3" placeholder="e.g., New York, NY" />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="description" className="text-right">Description</Label>
                     <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" placeholder="Briefly describe the project scope." />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="site-engineer" className="text-right">Site Engineer</Label>
+                    <Label htmlFor="site-engineer" className="text-right">Site Manager</Label>
                     <Select value={siteEngineer} onValueChange={setSiteEngineer}>
                         <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Select an engineer" />
+                            <SelectValue placeholder="Select a manager" />
                         </SelectTrigger>
                         <SelectContent>
-                            {siteEngineers.map(eng => (
-                                <SelectItem key={eng} value={eng}>{eng}</SelectItem>
+                            {siteManagers.map(manager => (
+                                <SelectItem key={manager.id} value={manager.name}>{manager.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>

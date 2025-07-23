@@ -34,6 +34,7 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
     const [description, setDescription] = useState("");
     const [location, setLocation] = useState("");
     const [siteEngineer, setSiteEngineer] = useState("");
+    const [budget, setBudget] = useState("");
     const [siteManagers, setSiteManagers] = useState<SiteManager[]>([]);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
@@ -54,7 +55,7 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
     }, []);
 
     const handleSubmit = async () => {
-        if (!name || !description || !siteEngineer || !location) {
+        if (!name || !description || !siteEngineer || !location || !budget) {
             toast({ title: "Error", description: "Please fill all fields.", variant: "destructive" });
             return;
         }
@@ -65,6 +66,9 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
                 description,
                 location,
                 siteEngineer,
+                budget: parseFloat(budget),
+                spent: 0,
+                progress: 0,
                 status: "Planning",
                 createdAt: serverTimestamp(),
             });
@@ -75,6 +79,7 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
             setDescription("");
             setLocation("");
             setSiteEngineer("");
+            setBudget("");
         } catch (error) {
             console.error("Error creating project:", error);
             toast({ title: "Error", description: "Could not create project.", variant: "destructive" });
@@ -105,6 +110,10 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
                     <Label htmlFor="description" className="text-right">Description</Label>
                     <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" placeholder="Briefly describe the project scope." />
                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="budget" className="text-right">Budget (₹)</Label>
+                    <Input id="budget" type="number" value={budget} onChange={(e) => setBudget(e.target.value)} className="col-span-3" placeholder="e.g., 5000000" />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="site-engineer" className="text-right">Site Manager</Label>
                     <Select value={siteEngineer} onValueChange={setSiteEngineer}>
@@ -131,3 +140,5 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
       </Dialog>
     )
 }
+
+    

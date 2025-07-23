@@ -17,6 +17,9 @@ export interface Project {
   siteEngineer: string;
   status: 'Planning' | 'In Progress' | 'Completed';
   createdAt: any;
+  budget: number;
+  spent: number;
+  progress: number;
 }
 
 export default function ProjectsPage() {
@@ -66,3 +69,5 @@ export default function ProjectsPage() {
     </div>
   );
 }
+
+    

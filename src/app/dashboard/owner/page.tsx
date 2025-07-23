@@ -30,27 +30,50 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const projects = [
-  { name: "Downtown Tower", budget: 40000000, spent: 26000000, progress: 65, status: "On Track" },
-  { name: "North Bridge", budget: 96000000, spent: 78400000, progress: 82, status: "On Track" },
-  { name: "Suburb Complex", budget: 60000000, spent: 64800000, progress: 95, status: "Over Budget" },
-  { name: "Westgate Mall", budget: 25600000, spent: 12000000, progress: 47, status: "On Track" },
-];
+import { type Project } from "./projects/page";
+import { collection, onSnapshot, query } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+import { db } from "@/lib/firebase";
 
 export default function OwnerDashboard() {
-  const totalBudget = projects.reduce((acc, p) => acc + p.budget, 0);
-  const totalSpent = projects.reduce((acc, p) => acc + p.spent, 0);
   const router = useRouter();
+  const { toast } = useToast();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     if (role !== 'owner') {
       router.push('/login');
     }
-  }, [router]);
+    
+    const q = query(collection(db, "projects"));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const projectsData: Project[] = [];
+      querySnapshot.forEach((doc) => {
+        projectsData.push({ id: doc.id, ...doc.data() } as Project);
+      });
+      setProjects(projectsData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching projects: ", error);
+      toast({
+        title: "Error fetching projects",
+        description: "Could not retrieve project data.",
+        variant: "destructive"
+      })
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [router, toast]);
+
+  const totalBudget = projects.reduce((acc, p) => acc + (p.budget || 0), 0);
+  const totalSpent = projects.reduce((acc, p) => acc + (p.spent || 0), 0);
+  const onTrackProjects = projects.filter(p => (p.spent || 0) <= (p.budget || 0)).length;
+  const overallProgress = projects.length > 0 ? projects.reduce((acc, p) => acc + (p.progress || 0), 0) / projects.length : 0;
   
   return (
     <>
@@ -66,7 +89,7 @@ export default function OwnerDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">72%</div>
+            <div className="text-2xl font-bold">{overallProgress.toFixed(0)}%</div>
             <p className="text-xs text-muted-foreground">
               Across all projects
             </p>
@@ -92,9 +115,9 @@ export default function OwnerDashboard() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3 / 4</div>
+            <div className="text-2xl font-bold">{onTrackProjects} / {projects.length}</div>
             <p className="text-xs text-muted-foreground">
-              1 project is over budget
+              {projects.length - onTrackProjects} project(s) over budget
             </p>
           </CardContent>
         </Card>
@@ -138,27 +161,31 @@ export default function OwnerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projects.map(p => (
-                   <TableRow key={p.name}>
-                    <TableCell>
-                      <div className="font-medium">{p.name}</div>
-                    </TableCell>
-                    <TableCell>
-                        <div className="font-medium">₹{p.spent.toLocaleString('en-IN')} / <span className="text-muted-foreground">₹{p.budget.toLocaleString('en-IN')}</span></div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                        <Progress value={p.progress} aria-label={`${p.progress}% complete`} />
-                        <span>{p.progress}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                       <Badge variant={p.status === "On Track" ? "secondary" : "destructive"}>
-                           {p.status}
-                       </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {loading ? (
+                  <TableRow><TableCell colSpan={4} className="h-24 text-center">Loading projects...</TableCell></TableRow>
+                ) : (
+                  projects.map(p => (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <div className="font-medium">{p.name}</div>
+                      </TableCell>
+                      <TableCell>
+                          <div className="font-medium">₹{(p.spent || 0).toLocaleString('en-IN')} / <span className="text-muted-foreground">₹{(p.budget || 0).toLocaleString('en-IN')}</span></div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="flex items-center gap-2">
+                          <Progress value={p.progress || 0} aria-label={`${p.progress || 0}% complete`} />
+                          <span>{p.progress || 0}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={(p.spent || 0) <= (p.budget || 0) ? "secondary" : "destructive"}>
+                           {(p.spent || 0) <= (p.budget || 0) ? "On Track" : "Over Budget"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -227,3 +254,5 @@ export default function OwnerDashboard() {
     </>
   );
 }
+
+    

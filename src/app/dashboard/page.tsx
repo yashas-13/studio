@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   CreditCard,
   Database,
+  GanttChartSquare,
   Package,
   Users,
 } from "lucide-react";
@@ -32,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { db, collection, addDoc, onSnapshot, getDocs } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, getDocs, query, orderBy, limit } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface Material {
@@ -44,6 +45,23 @@ interface Material {
   quantity: number;
   unit: string;
   lastUpdated: string;
+}
+
+interface UsageLog {
+  id: string;
+  materialName: string;
+  quantity: number;
+  unit: string;
+  project: string;
+  area: string;
+  date: string;
+  user: string;
+  notes?: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
 }
 
 const sampleMaterials = [
@@ -63,6 +81,9 @@ export default function Dashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const [recentDeliveries, setRecentDeliveries] = useState<Material[]>([]);
+  const [recentUsage, setRecentUsage] = useState<UsageLog[]>([]);
+  const [projectCount, setProjectCount] = useState(0);
+  const [lowStockCount, setLowStockCount] = useState(0);
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -70,21 +91,43 @@ export default function Dashboard() {
       router.push('/login');
     }
 
-    const q = collection(db, "materials");
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const qMaterials = query(collection(db, "materials"), orderBy("lastUpdated", "desc"), limit(4));
+    const unsubscribeMaterials = onSnapshot(qMaterials, (querySnapshot) => {
         const materialsData: Material[] = [];
         querySnapshot.forEach((doc) => {
             materialsData.push({ id: doc.id, ...doc.data() } as Material);
         });
-        setRecentDeliveries(materialsData.sort((a,b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()).slice(0, 4));
+        setRecentDeliveries(materialsData);
     });
 
-    return () => unsubscribe();
+    const qUsage = query(collection(db, "usageLogs"), orderBy("date", "desc"), limit(2));
+    const unsubscribeUsage = onSnapshot(qUsage, (snapshot) => {
+      const usageData: UsageLog[] = [];
+      snapshot.forEach(doc => usageData.push({ id: doc.id, ...doc.data() } as UsageLog));
+      setRecentUsage(usageData);
+    });
+    
+    const qAllMaterials = collection(db, "materials");
+    const unsubscribeAllMaterials = onSnapshot(qAllMaterials, (snapshot) => {
+        const lowStock = snapshot.docs.filter(doc => (doc.data().quantity || 0) < 10).length;
+        setLowStockCount(lowStock);
+    });
+
+    const qProjects = collection(db, "projects");
+    const unsubscribeProjects = onSnapshot(qProjects, (snapshot) => {
+        setProjectCount(snapshot.size);
+    });
+
+    return () => {
+        unsubscribeMaterials();
+        unsubscribeUsage();
+        unsubscribeAllMaterials();
+        unsubscribeProjects();
+    };
   }, [router]);
 
   const seedDatabase = async () => {
     try {
-      // Check if collections are empty before seeding
       const materialsSnap = await getDocs(collection(db, "materials"));
       if (materialsSnap.empty) {
         for (const material of sampleMaterials) {
@@ -118,7 +161,13 @@ export default function Dashboard() {
     if (!dateString || isNaN(new Date(dateString).getTime())) {
       return 'N/A';
     }
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = Math.abs(now.getTime() - date.getTime());
+    const diffHours = Math.floor(diff / (1000 * 60 * 60));
+    
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString();
   };
 
   return (
@@ -138,31 +187,12 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">
               Total Projects
             </CardTitle>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 text-muted-foreground"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-3.333 0-5 2.667-5 4s1.667 4 5 4 5-2.667 5-4-1.667-4-5-4zm0 5.333a1.333 1.333 0 110-2.666 1.333 1.333 0 010 2.666z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 6h8M8 18h8"
-              />
-            </svg>
+            <GanttChartSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
+            <div className="text-2xl font-bold">{projectCount}</div>
             <p className="text-xs text-muted-foreground">
-              -1 since last month
+              Across all sites
             </p>
           </CardContent>
         </Card>
@@ -174,9 +204,9 @@ export default function Dashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">{lowStockCount}</div>
             <p className="text-xs text-muted-foreground">
-              +1 from yesterday
+              Items with less than 10 units
             </p>
           </CardContent>
         </Card>
@@ -261,7 +291,7 @@ export default function Dashboard() {
                             <Badge variant={delivery.status === 'Delivered' ? 'secondary' : delivery.status === 'Pending' ? 'outline' : 'destructive'}>{delivery.status}</Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                           {formatLastUpdated(delivery.lastUpdated)}
+                           {new Date(delivery.lastUpdated).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">{`${delivery.quantity} ${delivery.unit}`}</TableCell>
                     </TableRow>
@@ -307,32 +337,25 @@ export default function Dashboard() {
               <CardTitle>Recent Site Updates</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-6">
-              <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704a" alt="Avatar" />
-                  <AvatarFallback>OM</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Olivia Martin</p>
-                  <p className="text-sm text-muted-foreground">
-                    Logged usage for Downtown Tower - Level 12.
-                  </p>
-                </div>
-                <div className="ml-auto text-sm text-muted-foreground">1h ago</div>
-              </div>
-              <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704b" alt="Avatar" />
-                  <AvatarFallback>JL</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Jackson Lee</p>
-                  <p className="text-sm text-muted-foreground">
-                    Received concrete delivery at North Bridge site.
-                  </p>
-                </div>
-                <div className="ml-auto text-sm text-muted-foreground">3h ago</div>
-              </div>
+              {recentUsage.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center">No recent usage logs.</p>
+              ) : (
+                recentUsage.map((log) => (
+                  <div key={log.id} className="flex items-center gap-4">
+                    <Avatar className="hidden h-9 w-9 sm:flex">
+                      <AvatarImage src={`https://i.pravatar.cc/150?u=${log.user}`} alt="Avatar" />
+                      <AvatarFallback>{log.user.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid gap-1">
+                      <p className="text-sm font-medium leading-none">{log.user}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Logged usage of {log.materialName} at {log.project}.
+                      </p>
+                    </div>
+                    <div className="ml-auto text-sm text-muted-foreground">{formatLastUpdated(log.date)}</div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { db, collection, addDoc, onSnapshot, doc, updateDoc, getDoc } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, doc, updateDoc, getDoc, query, orderBy } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface UsageLog {
@@ -46,13 +46,13 @@ export function UsageClient() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const qLogs = collection(db, "usageLogs");
+    const qLogs = query(collection(db, "usageLogs"), orderBy("date", "desc"));
     const unsubscribeLogs = onSnapshot(qLogs, (querySnapshot) => {
       const logsData: UsageLog[] = [];
       querySnapshot.forEach((doc) => {
         logsData.push({ id: doc.id, ...doc.data() } as UsageLog);
       });
-      setLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setLogs(logsData);
     });
 
     const qMaterials = collection(db, "materials");
@@ -168,7 +168,7 @@ export function UsageClient() {
                     <TableCell className="font-medium">
                         {item.materialName ? `${item.materialName} (${item.project || 'N/A'})` : 'N/A'}
                     </TableCell>
-                    <TableCell>{`${item.quantity || 0} ${item.unit || ''}`.trim()}</TableCell>
+                    <TableCell>{`${item.quantity ?? 0} ${item.unit ?? ''}`.trim()}</TableCell>
                     <TableCell className="hidden md:table-cell">{item.area}</TableCell>
                     <TableCell className="hidden md:table-cell">{new Date(item.date).toLocaleDateString()}</TableCell>
                     <TableCell className="hidden md:table-cell">{item.user}</TableCell>

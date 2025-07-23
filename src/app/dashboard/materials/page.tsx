@@ -47,7 +47,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useState } from "react";
-import { db, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, getDocs, updateDoc, getDoc } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, getDocs, updateDoc, getDoc, orderBy } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface Material {
@@ -73,7 +73,7 @@ export default function MaterialsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const q = collection(db, "materials");
+    const q = query(collection(db, "materials"), orderBy("lastUpdated", "desc"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const materialsData: Material[] = [];
       querySnapshot.forEach((doc) => {
@@ -83,11 +83,7 @@ export default function MaterialsPage() {
             materialsData.push({ id: doc.id, ...data } as Material);
         }
       });
-      setMaterials(materialsData.sort((a, b) => {
-          const dateA = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
-          const dateB = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
-          return dateB - dateA;
-      }));
+      setMaterials(materialsData);
     });
     return () => unsubscribe();
   }, []);

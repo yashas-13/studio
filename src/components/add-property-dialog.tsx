@@ -30,6 +30,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
     const [unitNumber, setUnitNumber] = useState("");
     const [projectId, setProjectId] = useState("");
     const [towerId, setTowerId] = useState("");
+    const [floor, setFloor] = useState("");
     const [type, setType] = useState("");
     const [size, setSize] = useState("");
     const [price, setPrice] = useState("");
@@ -56,6 +57,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
         setUnitNumber("");
         setProjectId("");
         setTowerId("");
+        setFloor("");
         setType("");
         setSize("");
         setPrice("");
@@ -67,23 +69,28 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
     const handleProjectChange = (id: string) => {
         setProjectId(id);
         setTowerId("");
+        setFloor("");
     }
+    
+    const selectedTowerData = towers.find(t => t.id === towerId);
 
     const handleSubmit = async () => {
-        if (!unitNumber || !projectId || !type || !size || !price || !status) {
+        if (!unitNumber || !projectId || !type || !size || !price || !status || !floor) {
             toast({ title: "Error", description: "Please fill all required fields.", variant: "destructive" });
             return;
         }
         setLoading(true);
         try {
             const selectedProject = projects.find(p => p.id === projectId);
-            const selectedTower = towers.find(t => t.id === towerId);
             
             // In a real app, you'd upload the photo to Firebase Storage and get the URL
             const newProperty: any = {
                 unitNumber,
                 project: selectedProject?.name,
-                tower: selectedTower?.name,
+                projectId: selectedProject?.id,
+                tower: selectedTowerData?.name,
+                towerId: selectedTowerData?.id,
+                floor: parseInt(floor),
                 type,
                 size: parseFloat(size),
                 price: parseFloat(price),
@@ -141,6 +148,19 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
                         <SelectContent>
                             {towers.map(t => (
                                 <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="floor" className="text-right">Floor</Label>
+                    <Select value={floor} onValueChange={setFloor} disabled={!towerId}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select a floor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {selectedTowerData && Array.from({ length: selectedTowerData.floors }, (_, i) => i + 1).map(f => (
+                                <SelectItem key={f} value={String(f)}>Floor {f}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>

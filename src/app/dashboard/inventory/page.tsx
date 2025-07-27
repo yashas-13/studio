@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, DoorOpen, BedDouble, Bath, PlusCircle, ChevronsUpDown } from 'lucide-react';
+import { Building, DoorOpen, BedDouble, PlusCircle, ChevronsUpDown, Filter, SortAsc, SortDesc } from 'lucide-react';
 import { type Project } from '../owner/projects/page';
+import { type Tower } from '../owner/projects/[id]/towers/page';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { AddPropertyDialog } from '@/components/add-property-dialog';
@@ -17,7 +18,10 @@ interface Property {
   id: string;
   unitNumber: string;
   project: string;
+  projectId: string;
   tower?: string;
+  towerId?: string;
+  floor: number;
   type: string; // e.g., '2BHK', '3BHK'
   size: number; // in sqft
   status: 'Available' | 'Booked' | 'Sold';
@@ -25,11 +29,19 @@ interface Property {
   photoUrl?: string;
 }
 
+type SortOption = 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
+
 export default function InventoryPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [towers, setTowers] = useState<Tower[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
+  
   const [selectedProject, setSelectedProject] = useState<string>('all');
+  const [selectedTower, setSelectedTower] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('price_asc');
+
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -37,7 +49,6 @@ export default function InventoryPage() {
     const propertiesUnsub = onSnapshot(collection(db, 'properties'), (snapshot) => {
       const propsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
       setProperties(propsData);
-      setFilteredProperties(propsData); // Initially show all
       setLoading(false);
     });
 
@@ -45,25 +56,51 @@ export default function InventoryPage() {
       const projectsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
       setProjects(projectsData);
     });
+    
+    const towersUnsub = onSnapshot(collection(db, 'towers'), (snapshot) => {
+      const towersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tower));
+      setTowers(towersData);
+    });
 
     return () => {
       propertiesUnsub();
       projectsUnsub();
+      towersUnsub();
     };
   }, []);
 
   useEffect(() => {
-    if (selectedProject === 'all') {
-      setFilteredProperties(properties);
-    } else {
-      const selectedProjectData = projects.find(p => p.id === selectedProject);
-      if (selectedProjectData) {
-        setFilteredProperties(properties.filter(p => p.project === selectedProjectData.name));
-      } else {
-        setFilteredProperties([]);
-      }
+    let tempProperties = properties;
+
+    // Filter by project
+    if (selectedProject !== 'all') {
+      tempProperties = tempProperties.filter(p => p.projectId === selectedProject);
     }
-  }, [selectedProject, properties, projects]);
+    
+    // Filter by tower
+    if (selectedTower !== 'all') {
+      tempProperties = tempProperties.filter(p => p.towerId === selectedTower);
+    }
+    
+    // Filter by status
+    if (selectedStatus !== 'all') {
+      tempProperties = tempProperties.filter(p => p.status === selectedStatus);
+    }
+
+    // Sort
+    tempProperties.sort((a, b) => {
+      switch (sortBy) {
+        case 'price_asc': return a.price - b.price;
+        case 'price_desc': return b.price - a.price;
+        case 'size_asc': return a.size - b.size;
+        case 'size_desc': return b.size - a.size;
+        default: return 0;
+      }
+    });
+
+    setFilteredProperties(tempProperties);
+
+  }, [selectedProject, selectedTower, selectedStatus, sortBy, properties]);
 
   const getStatusVariant = (status: Property['status']) => {
     switch (status) {
@@ -74,6 +111,8 @@ export default function InventoryPage() {
     }
   };
 
+  const projectTowers = selectedProject === 'all' ? [] : towers.filter(t => t.projectId === selectedProject);
+
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {[...Array(8)].map((_, i) => (
@@ -83,6 +122,7 @@ export default function InventoryPage() {
             <Skeleton className="h-4 w-1/2" />
           </CardHeader>
           <CardContent className="space-y-3">
+            <Skeleton className="h-40 w-full" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-8 w-1/3 ml-auto" />
@@ -98,27 +138,68 @@ export default function InventoryPage() {
         <div className="flex items-center">
           <h1 className="text-lg font-semibold md:text-2xl">Real-Time Inventory</h1>
           <div className="ml-auto flex items-center gap-2">
-            <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by project" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Projects</SelectItem>
-                {projects.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={() => setIsDialogOpen(true)} size="sm">
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Property
             </Button>
           </div>
         </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Filter className="h-5 w-5"/> Filters & Sorting</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-4">
+                 <Select value={selectedProject} onValueChange={(v) => {setSelectedProject(v); setSelectedTower('all');}}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Projects</SelectItem>
+                        {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                 <Select value={selectedTower} onValueChange={setSelectedTower} disabled={selectedProject === 'all'}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by tower" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Towers</SelectItem>
+                        {projectTowers.map(t => (
+                           <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="Available">Available</SelectItem>
+                        <SelectItem value="Booked">Booked</SelectItem>
+                        <SelectItem value="Sold">Sold</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Sort by..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                       <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                       <SelectItem value="size_asc">Size: Small to Large</SelectItem>
+                       <SelectItem value="size_desc">Size: Large to Small</SelectItem>
+                    </SelectContent>
+                </Select>
+            </CardContent>
+        </Card>
         
         {loading ? renderSkeleton() : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProperties.map(prop => (
+            {filteredProperties.length > 0 ? filteredProperties.map(prop => (
               <Card key={prop.id} className="flex flex-col overflow-hidden">
                   <div className="relative">
                       <Image 
@@ -145,6 +226,10 @@ export default function InventoryPage() {
                           <DoorOpen className="h-4 w-4" />
                           <span className="text-sm font-medium">{prop.size} sqft</span>
                       </div>
+                       <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4" />
+                          <span className="text-sm font-medium">Floor {prop.floor || 'N/A'}</span>
+                      </div>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">₹{prop.price.toLocaleString('en-IN')}</p>
@@ -156,7 +241,11 @@ export default function InventoryPage() {
                   </Button>
                 </CardFooter>
               </Card>
-            ))}
+            )) : (
+                <div className="col-span-full text-center py-12">
+                    <p className="text-muted-foreground">No properties match your current filters.</p>
+                </div>
+            )}
           </div>
         )}
       </div>

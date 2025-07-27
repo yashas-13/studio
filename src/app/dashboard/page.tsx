@@ -95,10 +95,12 @@ const sampleLeads = [
 const sampleProperties = [
     { unitNumber: "A-101", project: "Suburb Complex", type: "2BHK", size: 1200, status: 'Sold', price: 7500000 },
     { unitNumber: "A-102", project: "Suburb Complex", type: "3BHK", size: 1600, status: 'Sold', price: 9500000 },
-    { unitNumber: "B-503", project: "Suburb Complex", type: "2BHK", size: 1250, status: 'Sold', price: 7800000 },
+    { unitNumber: "B-503", project: "Suburb Complex", type: "2BHK", size: 1250, status: 'Available', price: 7800000 },
+    { unitNumber: "C-104", project: "Suburb Complex", type: "3BHK", size: 1650, status: 'Available', price: 9800000 },
     { unitNumber: "1401", project: "Downtown Tower", type: "Office", size: 2500, status: 'Available', price: 25000000 },
     { unitNumber: "1402", project: "Downtown Tower", type: "Office", size: 3000, status: 'Booked', price: 30000000 },
     { unitNumber: "1501", project: "Downtown Tower", type: "Retail", size: 1800, status: 'Available', price: 45000000 },
+    { unitNumber: "1502", project: "Downtown Tower", type: "Retail", size: 2200, status: 'Sold', price: 55000000 },
 ];
 
 

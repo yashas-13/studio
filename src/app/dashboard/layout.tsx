@@ -37,10 +37,8 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     const role = localStorage.getItem('userRole');
     if (!role) {
       router.push('/login');
@@ -73,6 +71,7 @@ export default function DashboardLayout({
   ];
   
   const getNavLinks = () => {
+      if (!userRole) return [];
       switch(userRole) {
           case 'owner': return ownerNavLinks;
           case 'sitemanager': return siteManagerNavLinks;
@@ -87,26 +86,9 @@ export default function DashboardLayout({
   return (
     <div className="flex flex-col min-h-screen w-full">
       <DashboardHeader navLinks={navLinks} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-background pb-20 md:pb-6">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-background">
           {children}
         </main>
-      
-      {isClient && navLinks.length > 0 && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t z-50 md:hidden">
-            <div className="flex h-16 items-center justify-around">
-                {navLinks.map((link) => (
-                    <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`flex flex-col items-center gap-1 text-xs ${pathname === link.href ? 'text-primary' : 'text-muted-foreground'}`}
-                    >
-                        <link.icon className="h-5 w-5" />
-                        {link.label}
-                    </Link>
-                ))}
-            </div>
-        </nav>
-      )}
     </div>
   );
 }

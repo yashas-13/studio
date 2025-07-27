@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { type LeadStatus, type Lead } from '../page';
 import { Textarea } from '@/components/ui/textarea';
 import { analyzeLead, type AnalyzeLeadOutput } from '@/ai/flows/lead-analysis';
-import { recommendProperties, type PropertyRecommendationInput } from '@/ai/flows/property-recommendation';
 import { type Property } from '@/lib/types';
 import Link from 'next/link';
 
@@ -40,8 +39,9 @@ export default function LeadProfilePage() {
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeLeadOutput | null>(null);
-  const [isRecommending, setIsRecommending] = useState(false);
-  const [recommendations, setRecommendations] = useState<Property[] | null>(null);
+  const [availableInventory, setAvailableInventory] = useState<Property[] | null>(null);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,7 +49,11 @@ export default function LeadProfilePage() {
     
     const leadUnsub = onSnapshot(doc(db, 'leads', id), (doc) => {
         if (doc.exists()) {
-          setLead({ id: doc.id, ...doc.data() } as Lead);
+          const leadData = { id: doc.id, ...doc.data() } as Lead;
+          setLead(leadData);
+          if (leadData.projectId) {
+            fetchProjectInventory(leadData.projectId);
+          }
         } else {
           router.push('/dashboard/crm');
         }
@@ -70,6 +74,15 @@ export default function LeadProfilePage() {
         activityUnsub();
     };
   }, [id, router]);
+
+  const fetchProjectInventory = async (projectId: string) => {
+    setLoadingInventory(true);
+    const q = query(collection(db, "properties"), where("projectId", "==", projectId), where("status", "==", "Available"));
+    const snapshot = await getDocs(q);
+    const inventoryData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Property[];
+    setAvailableInventory(inventoryData);
+    setLoadingInventory(false);
+  }
 
   const getStatusVariant = (status: Lead['status']): "secondary" | "outline" | "default" | "destructive" => {
     switch (status) {
@@ -140,41 +153,6 @@ export default function LeadProfilePage() {
         setIsAnalyzing(false);
     }
   };
-
-  const handleGetRecommendations = async () => {
-    if (!lead) return;
-    setIsRecommending(true);
-    setRecommendations(null);
-
-    try {
-        const q = query(collection(db, "properties"), where("status", "==", "Available"));
-        const snapshot = await getDocs(q);
-        const availableProperties = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Property[];
-
-        if (availableProperties.length === 0) {
-            toast({ title: "No Inventory", description: "No available properties found in the inventory to recommend." });
-            setIsRecommending(false);
-            return;
-        }
-
-        const input: PropertyRecommendationInput = {
-            requirements: lead.requirements,
-            properties: availableProperties,
-        }
-
-        const result = await recommendProperties(input);
-
-        const recommendedProps = availableProperties.filter(p => result.recommendedPropertyIds.includes(p.id));
-
-        setRecommendations(recommendedProps);
-
-    } catch(e) {
-        console.error("Error getting recommendations:", e);
-        toast({ title: "Recommendation Error", description: "Could not get AI property recommendations.", variant: 'destructive'});
-    } finally {
-        setIsRecommending(false);
-    }
-  }
   
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
@@ -259,6 +237,10 @@ export default function LeadProfilePage() {
                             <User className="h-4 w-4 text-muted-foreground" />
                             <span className="text-muted-foreground">Assigned to: {lead.assignedTo}</span>
                         </div>
+                        <div className="flex items-center gap-3">
+                            <Building className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">Project: {lead.projectName || "Not specified"}</span>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -339,26 +321,22 @@ export default function LeadProfilePage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>AI Property Recommendations</CardTitle>
-                    <CardDescription>Find matching properties based on lead's requirements.</CardDescription>
+                    <CardTitle>Interested Project & Inventory</CardTitle>
+                    <CardDescription>Available units in {lead.projectName || 'the selected project'}.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <Button onClick={handleGetRecommendations} disabled={isRecommending || !lead.requirements} className="w-full">
-                        {isRecommending ? <Loader2 className="animate-spin mr-2"/> : <Home className="mr-2" />}
-                        Find Matching Properties
-                    </Button>
-                     {isRecommending && (
+                    {loadingInventory && (
                         <div className="flex items-center justify-center p-8">
                             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                         </div>
                     )}
-                    {recommendations && (
-                        <div className="space-y-4 pt-4">
-                            {recommendations.length > 0 ? (
-                                recommendations.map(prop => (
-                                    <Link key={prop.id} href="/dashboard/inventory">
+                    {availableInventory && !loadingInventory && (
+                        <div className="space-y-4">
+                            {availableInventory.length > 0 ? (
+                                availableInventory.map(prop => (
+                                    <Link key={prop.id} href={`/dashboard/inventory?property=${prop.id}`}>
                                         <div className="p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer">
-                                            <div className="font-semibold">{prop.unitNumber} in {prop.project}</div>
+                                            <div className="font-semibold">{prop.unitNumber} in {prop.tower || prop.project}</div>
                                             <div className="text-sm text-muted-foreground flex justify-between">
                                                 <span>{prop.type} / {prop.size} sqft</span>
                                                 <span className="font-medium text-foreground">₹{prop.price.toLocaleString('en-IN')}</span>
@@ -367,9 +345,12 @@ export default function LeadProfilePage() {
                                     </Link>
                                 ))
                             ) : (
-                                <p className="text-sm text-muted-foreground text-center p-4">No suitable properties found in the current inventory.</p>
+                                <p className="text-sm text-muted-foreground text-center p-4">No available units found for this project.</p>
                             )}
                         </div>
+                    )}
+                    {!lead.projectId && !loadingInventory && (
+                        <p className="text-sm text-muted-foreground text-center p-4">This lead is not yet associated with a project.</p>
                     )}
                 </CardContent>
             </Card>

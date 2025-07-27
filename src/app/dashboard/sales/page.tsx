@@ -49,6 +49,8 @@ import { collection, onSnapshot, query, orderBy, limit, addDoc, serverTimestamp 
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { LeadAnalysisClient } from "@/components/client/lead-analysis-client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type Project } from "../owner/projects/page";
 
 interface ActivityFeedItem {
     id: string;
@@ -65,6 +67,7 @@ const upcomingFollowUps = [
 
 export default function SalesDashboardPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -73,6 +76,7 @@ export default function SalesDashboardPage() {
       email: "",
       phone: "",
       requirements: "",
+      projectId: "",
     });
     const { toast } = useToast();
 
@@ -82,6 +86,12 @@ export default function SalesDashboardPage() {
           const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Lead[];
           setLeads(leadsData);
           setLoading(false);
+        });
+
+        const qProjects = query(collection(db, "projects"), orderBy("createdAt", "desc"));
+        const unsubscribeProjects = onSnapshot(qProjects, (snapshot) => {
+            const projectsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Project[];
+            setProjects(projectsData);
         });
     
         // This is a placeholder for a more sophisticated activity feed.
@@ -99,6 +109,7 @@ export default function SalesDashboardPage() {
     
         return () => {
             unsubscribeLeads();
+            unsubscribeProjects();
             unsubscribeActivity();
         };
       }, []);
@@ -113,21 +124,23 @@ export default function SalesDashboardPage() {
     };
 
     const handleAddLead = async () => {
-      if (!newLead.name || !newLead.email) {
-        toast({ title: "Error", description: "Please fill name and email.", variant: "destructive" });
+      if (!newLead.name || !newLead.email || !newLead.projectId) {
+        toast({ title: "Error", description: "Please fill name, email and project.", variant: "destructive" });
         return;
       }
 
       try {
+        const selectedProject = projects.find(p => p.id === newLead.projectId);
         await addDoc(collection(db, "leads"), {
           ...newLead,
+          projectName: selectedProject?.name,
           status: "New",
-          assignedTo: "Sales Rep", // Placeholder, ideally this would be the logged in user's name
+          assignedTo: "Anjali Sharma", // Placeholder, ideally this would be the logged in user's name
           createdAt: serverTimestamp(),
         });
         toast({ title: "Success", description: "New lead added." });
         setIsDialogOpen(false);
-        setNewLead({ name: "", email: "", phone: "", requirements: "" });
+        setNewLead({ name: "", email: "", phone: "", requirements: "", projectId: "" });
       } catch (error) {
         console.error("Error adding lead: ", error);
         toast({ title: "Error", description: "Could not add lead.", variant: "destructive" });
@@ -304,6 +317,19 @@ export default function SalesDashboardPage() {
               <Input id="phone" value={newLead.phone} onChange={(e) => handleInputChange('phone', e.target.value)} className="col-span-3" placeholder="e.g., +1 234 567 890" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="project" className="text-right">Project of Interest</Label>
+              <Select value={newLead.projectId} onValueChange={(value) => handleInputChange('projectId', value)}>
+                <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                    {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="requirements" className="text-right">Requirements</Label>
               <Textarea id="requirements" value={newLead.requirements} onChange={(e) => handleInputChange('requirements', e.target.value)} className="col-span-3" placeholder="e.g., 3BHK, corner unit, high floor..." />
             </div>
@@ -319,5 +345,3 @@ export default function SalesDashboardPage() {
     </>
   );
 }
-
-    

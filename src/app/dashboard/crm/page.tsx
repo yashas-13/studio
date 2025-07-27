@@ -15,6 +15,8 @@ export interface Lead {
   assignedTo: string;
   createdAt: any;
   requirements: string;
+  projectId?: string;
+  projectName?: string;
 }
 
 export default function CrmPage() {

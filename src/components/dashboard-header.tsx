@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ConstructWiseLogo } from "./icons";
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 
 interface NavLink {
     href: string;
@@ -71,14 +71,21 @@ export function DashboardHeader({ navLinks }: DashboardHeaderProps) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left">
-            <nav className="grid gap-6 text-lg font-medium">
-              <Link
-                href="#"
-                className="flex items-center gap-2 text-lg font-semibold"
-              >
-                <ConstructWiseLogo className="h-6 w-6" />
-                <span className="sr-only">ConstructWise</span>
-              </Link>
+            <SheetHeader>
+                <SheetTitle>
+                    <Link
+                        href="#"
+                        className="flex items-center gap-2 text-lg font-semibold"
+                    >
+                        <ConstructWiseLogo className="h-6 w-6" />
+                        <span>ConstructWise</span>
+                    </Link>
+                </SheetTitle>
+                <SheetDescription>
+                    Navigate through your dashboard modules.
+                </SheetDescription>
+            </SheetHeader>
+            <nav className="grid gap-6 text-lg font-medium mt-4">
               {navLinks && navLinks.length > 0 && navLinks.map((link) => (
                   <Link
                   key={link.href}

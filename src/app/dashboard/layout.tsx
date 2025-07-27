@@ -76,7 +76,7 @@ export default function DashboardLayout({
     { href: "/dashboard/owner/projects", icon: GanttChartSquare, label: "Projects" },
     { href: "/dashboard/users", icon: Users, label: "Users" },
     { href: "/dashboard/file-sharing", icon: FileArchive, label: "Files" },
-    { href: "/dashboard/crm", icon: Briefcase, label: "CRM" },
+    { href: "/dashboard/owner/sales", icon: Briefcase, label: "CRM" },
   ];
 
   const siteManagerNavLinks = [

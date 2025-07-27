@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { db, collection, addDoc, onSnapshot, doc, deleteDoc, serverTimestamp, query, orderBy } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface Lead {
   id: string;
@@ -54,6 +55,7 @@ export default function CrmPage() {
     phone: "",
   });
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const q = query(collection(db, "leads"), orderBy("createdAt", "desc"));
@@ -149,12 +151,12 @@ export default function CrmPage() {
               </TableHeader>
               <TableBody>
                 {leads.map((lead) => (
-                  <TableRow key={lead.id}>
+                  <TableRow key={lead.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => {/* Placeholder for navigation */}}>
                     <TableCell className="font-medium">{lead.name}</TableCell>
                     <TableCell>{lead.email}</TableCell>
                     <TableCell>{lead.phone || 'N/A'}</TableCell>
                     <TableCell><Badge variant={getStatusVariant(lead.status)}>{lead.status}</Badge></TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button aria-haspopup="true" size="icon" variant="ghost">

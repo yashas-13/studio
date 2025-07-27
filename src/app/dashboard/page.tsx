@@ -93,20 +93,13 @@ const sampleLeads = [
 ];
 
 const sampleProperties = [
-    { unitNumber: "A-101", project: "Suburb Complex", type: "2BHK", size: 1200, status: 'Sold', price: 7500000 },
-    { unitNumber: "A-102", project: "Suburb Complex", type: "3BHK", size: 1600, status: 'Sold', price: 9500000 },
-    { unitNumber: "B-503", project: "Suburb Complex", type: "2BHK", size: 1250, status: 'Available', price: 7800000 },
-    { unitNumber: "C-104", project: "Suburb Complex", type: "3BHK", size: 1650, status: 'Available', price: 9800000 },
-    { unitNumber: "1401", project: "Downtown Tower", type: "Office", size: 2500, status: 'Available', price: 25000000 },
-    { unitNumber: "1402", project: "Downtown Tower", type: "Office", size: 3000, status: 'Booked', price: 30000000 },
-    { unitNumber: "1501", project: "Downtown Tower", type: "Retail", size: 1800, status: 'Available', price: 45000000 },
-    { unitNumber: "1502", project: "Downtown Tower", type: "Retail", size: 2200, status: 'Sold', price: 55000000 },
+    // These will be auto-generated now if towers exist
 ];
 
 const sampleTowers = [
-    { name: "Tower A", floors: 20, unitsPerFloor: 4, projectId: "" },
-    { name: "Tower B", floors: 25, unitsPerFloor: 4, projectId: "" },
-    { name: "Commercial Block", floors: 10, unitsPerFloor: 2, projectId: "" },
+    { name: "Tower A", floors: 15, unitsPerFloor: 8, projectName: "Suburb Complex" },
+    { name: "Tower B", floors: 25, unitsPerFloor: 4, projectName: "Suburb Complex" },
+    { name: "Commercial Block", floors: 10, unitsPerFloor: 2, projectName: "Downtown Tower" },
 ];
 
 
@@ -219,22 +212,43 @@ export default function Dashboard() {
                 seededCount++;
             }
         }
-        
-        const propertyDocs = await getDocs(collection(db, "properties"));
-        if (propertyDocs.empty) {
-            for (const property of sampleProperties) {
-                await addDoc(collection(db, "properties"), property);
-                seededCount++;
-            }
-        }
 
         const towerDocs = await getDocs(collection(db, "towers"));
         if (towerDocs.empty) {
-            for (const tower of sampleTowers) {
-                const projectIds = Object.values(projectNameToId);
-                const randomProjectId = projectIds[Math.floor(Math.random() * projectIds.length)];
-                await addDoc(collection(db, "towers"), {...tower, projectId: randomProjectId});
-                seededCount++;
+            for (const towerData of sampleTowers) {
+                const projectId = projectNameToId[towerData.projectName];
+                if (projectId) {
+                    const towerPayload = {
+                        name: towerData.name,
+                        floors: towerData.floors,
+                        unitsPerFloor: towerData.unitsPerFloor,
+                        projectId: projectId,
+                    };
+                    const towerRef = await addDoc(collection(db, "towers"), towerPayload);
+                    seededCount++;
+
+                    // Auto-generate units for the new tower
+                    for (let f = 1; f <= towerData.floors; f++) {
+                        for (let u = 1; u <= towerData.unitsPerFloor; u++) {
+                            const unitNumber = `${towerData.name.charAt(0)}-${f}${u.toString().padStart(2, '0')}`;
+                            const newProperty = {
+                                unitNumber: unitNumber,
+                                project: towerData.projectName,
+                                projectId: projectId,
+                                tower: towerData.name,
+                                towerId: towerRef.id,
+                                floor: f,
+                                type: '2BHK',
+                                size: 1200,
+                                price: 7500000,
+                                status: 'Available',
+                                photoUrl: null,
+                            };
+                            await addDoc(collection(db, 'properties'), newProperty);
+                            seededCount++;
+                        }
+                    }
+                }
             }
         }
 

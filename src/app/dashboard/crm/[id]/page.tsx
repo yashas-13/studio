@@ -12,6 +12,7 @@ import LeadDetailsCard from '@/components/lead-details-card';
 import LeadRequirementsCard from '@/components/lead-requirements-card';
 import LeadActions from '@/components/lead-actions';
 import LeadActivity from '@/components/lead-activity';
+import LeadDocumentsCard from '@/components/lead-documents-card';
 
 
 export default function LeadProfilePage() {
@@ -55,6 +56,7 @@ export default function LeadProfilePage() {
         <div className="lg:col-span-1 space-y-6">
             <LeadDetailsCard lead={lead} />
             <LeadRequirementsCard lead={lead} />
+            <LeadDocumentsCard leadId={lead.id} />
         </div>
         <div className="lg:col-span-2 space-y-6">
             <LeadActions lead={lead} />
@@ -83,6 +85,15 @@ function LeadProfileSkeleton() {
                             <Skeleton className="h-6 w-32 mb-2" />
                             <Skeleton className="h-4 w-40 mb-2" />
                             <Skeleton className="h-6 w-20" />
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                             <Skeleton className="h-6 w-40 mb-2" />
+                             <Skeleton className="h-4 w-56" />
+                        </CardHeader>
+                         <CardContent>
+                            <Skeleton className="h-12 w-full" />
                         </CardContent>
                     </Card>
                      <Card>

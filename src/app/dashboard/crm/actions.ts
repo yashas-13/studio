@@ -44,3 +44,23 @@ export async function addLeadNote(leadId: string, note: string) {
     });
     revalidatePath(`/dashboard/crm/${leadId}`);
 }
+
+export async function addLeadDocument(leadId: string, fileName: string, fileType: string) {
+    if (!fileName.trim()) return;
+    // In a real app, you would upload the file to Firebase Storage and store the URL.
+    // For this example, we're just creating a record.
+    await addDoc(collection(db, 'leads', leadId, 'documents'), {
+        name: fileName,
+        type: fileType,
+        url: '#', // Placeholder URL
+        uploadedAt: serverTimestamp(),
+        uploadedBy: 'Anjali Sharma' // Placeholder user
+    });
+     await addDoc(collection(db, 'leads', leadId, 'activity'), {
+        type: 'Note',
+        content: `Document uploaded: ${fileName}.`,
+        date: serverTimestamp(),
+        user: 'Anjali Sharma'
+    });
+    revalidatePath(`/dashboard/crm/${leadId}`);
+}

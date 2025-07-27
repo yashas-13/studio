@@ -24,17 +24,7 @@ import {
   Voicemail,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { ConstructWiseLogo } from "@/components/icons";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -56,14 +46,6 @@ export default function DashboardLayout({
       router.push('/login');
     } else {
       setUserRole(role);
-      // Basic redirection logic, can be expanded
-      if (role === 'owner' && !pathname.startsWith('/dashboard/owner')) {
-         if (!pathname.startsWith('/dashboard/file-sharing') && !pathname.startsWith('/dashboard/users') && !pathname.startsWith('/dashboard/crm')) {
-            // router.push('/dashboard/owner');
-        }
-      } else if (role === 'sitemanager' && pathname.startsWith('/dashboard/owner')) {
-        router.push('/dashboard');
-      }
     }
   }, [pathname, router]);
 
@@ -72,7 +54,7 @@ export default function DashboardLayout({
     { href: "/dashboard/owner/projects", icon: GanttChartSquare, label: "Projects" },
     { href: "/dashboard/users", icon: Users, label: "Users" },
     { href: "/dashboard/file-sharing", icon: FileArchive, label: "Files" },
-    { href: "/dashboard/owner/sales", icon: Briefcase, label: "CRM" },
+    { href: "/dashboard/crm", icon: Briefcase, label: "CRM" },
   ];
 
   const siteManagerNavLinks = [
@@ -104,7 +86,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex flex-col min-h-screen w-full">
-      <DashboardHeader />
+      <DashboardHeader navLinks={navLinks} />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-background pb-20 md:pb-6">
           {children}
         </main>

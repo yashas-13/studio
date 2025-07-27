@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import {
@@ -60,6 +59,8 @@ interface Material {
   unit: string;
   status: 'Delivered' | 'Pending' | 'Delayed';
   lastUpdated: string;
+  invoiceUrl?: string;
+  photoUrl?: string;
 }
 
 export default function MaterialsPage() {
@@ -70,7 +71,9 @@ export default function MaterialsPage() {
     supplier: "",
     project: "",
     quantity: "",
-    unit: ""
+    unit: "",
+    invoice: null as File | null,
+    photo: null as File | null,
   });
   const { toast } = useToast();
 
@@ -93,6 +96,10 @@ export default function MaterialsPage() {
   const handleInputChange = (name: string, value: string) => {
     setNewMaterial(prev => ({ ...prev, [name]: value }));
   };
+  
+  const handleFileChange = (name: 'invoice' | 'photo', file: File | null) => {
+    setNewMaterial(prev => ({...prev, [name]: file}));
+  }
 
   const handleAddMaterial = async () => {
     if (!newMaterial.name || !newMaterial.supplier || !newMaterial.project || !newMaterial.quantity || !newMaterial.unit) {
@@ -105,6 +112,11 @@ export default function MaterialsPage() {
       toast({ title: "Error", description: "Please enter a valid quantity.", variant: "destructive" });
       return;
     }
+
+    // NOTE: In a real app, you would upload files to a service like Firebase Storage
+    // and get back URLs. For now, we'll just use placeholder names.
+    const invoiceUrl = newMaterial.invoice ? `invoices/${newMaterial.invoice.name}` : undefined;
+    const photoUrl = newMaterial.photo ? `photos/${newMaterial.photo.name}` : undefined;
 
     try {
       // Check if material already exists for the project
@@ -120,6 +132,8 @@ export default function MaterialsPage() {
           lastUpdated: new Date().toISOString(),
           supplier: newMaterial.supplier, // Update supplier to the latest one
           status: "Delivered",
+          invoiceUrl,
+          photoUrl,
         });
         toast({ title: "Success", description: `Updated stock for ${newMaterial.name}.` });
       } else {
@@ -132,12 +146,14 @@ export default function MaterialsPage() {
           unit: newMaterial.unit,
           status: "Delivered",
           lastUpdated: new Date().toISOString(),
+          invoiceUrl,
+          photoUrl,
         });
         toast({ title: "Success", description: `${newMaterial.name} added to inventory.` });
       }
 
       setIsDialogOpen(false);
-      setNewMaterial({ name: "", supplier: "", project: "", quantity: "", unit: "" });
+      setNewMaterial({ name: "", supplier: "", project: "", quantity: "", unit: "", invoice: null, photo: null });
 
     } catch (error) {
       console.error("Error adding material: ", error);
@@ -177,7 +193,7 @@ export default function MaterialsPage() {
           <div className="ml-auto flex items-center gap-2">
             <Button size="sm" className="h-8 gap-1" onClick={() => setIsDialogOpen(true)}>
               <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              <span className="sr-only sm:not-sr-only sm:whitespace-rap">
                 Add Material
               </span>
             </Button>
@@ -274,6 +290,14 @@ export default function MaterialsPage() {
               <Label htmlFor="project" className="text-right">Project</Label>
               <Input id="project" value={newMaterial.project} onChange={(e) => handleInputChange('project', e.target.value)} className="col-span-3" placeholder="e.g., Downtown Tower" />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="invoice" className="text-right">Invoice</Label>
+              <Input id="invoice" type="file" onChange={(e) => handleFileChange('invoice', e.target.files ? e.target.files[0] : null)} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="photo" className="text-right">Photo</Label>
+              <Input id="photo" type="file" accept="image/*" onChange={(e) => handleFileChange('photo', e.target.files ? e.target.files[0] : null)} className="col-span-3" />
+            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -286,3 +310,5 @@ export default function MaterialsPage() {
     </>
   );
 }
+
+    

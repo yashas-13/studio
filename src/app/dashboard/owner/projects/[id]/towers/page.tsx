@@ -4,13 +4,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, where, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { type Project } from "../../page";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Building, PlusCircle, Layers, ChevronsUpDown } from "lucide-react";
+import { Building, PlusCircle, Layers, ChevronsUpDown, MoreHorizontal } from "lucide-react";
 import { AddTowerDialog } from "@/components/add-tower-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export interface Tower {
     id: string;
@@ -27,6 +28,7 @@ export default function ProjectTowersPage() {
     const [towers, setTowers] = useState<Tower[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [editingTower, setEditingTower] = useState<Tower | null>(null);
 
     useEffect(() => {
         if (typeof id === 'string') {
@@ -51,6 +53,23 @@ export default function ProjectTowersPage() {
             return () => unsubscribe();
         }
     }, [id]);
+    
+    const handleAddClick = () => {
+        setEditingTower(null);
+        setIsDialogOpen(true);
+    }
+    
+    const handleEditClick = (tower: Tower) => {
+        setEditingTower(tower);
+        setIsDialogOpen(true);
+    }
+    
+    const handleDeleteClick = async (towerId: string) => {
+        if (window.confirm("Are you sure you want to delete this tower?")) {
+            await deleteDoc(doc(db, "towers", towerId));
+        }
+    }
+
 
     const renderSkeleton = () => (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -76,7 +95,7 @@ export default function ProjectTowersPage() {
                     Manage Towers: {project?.name || 'Project'}
                 </h1>
                 <div className="ml-auto">
-                    <Button onClick={() => setIsDialogOpen(true)}>
+                    <Button onClick={handleAddClick}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Add Tower
                     </Button>
@@ -95,9 +114,22 @@ export default function ProjectTowersPage() {
                         {towers.length > 0 ? towers.map(tower => (
                             <Card key={tower.id}>
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Building className="h-5 w-5" />
-                                        {tower.name}
+                                    <CardTitle className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Building className="h-5 w-5" />
+                                            {tower.name}
+                                        </div>
+                                         <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => handleEditClick(tower)}>Edit</DropdownMenuItem>
+                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(tower.id)}>Delete</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -122,7 +154,12 @@ export default function ProjectTowersPage() {
                 </CardContent>
             </Card>
         </div>
-        <AddTowerDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} projectId={id as string} />
+        <AddTowerDialog 
+            isOpen={isDialogOpen} 
+            onOpenChange={setIsDialogOpen} 
+            projectId={id as string} 
+            towerToEdit={editingTower}
+        />
         </>
     );
 }

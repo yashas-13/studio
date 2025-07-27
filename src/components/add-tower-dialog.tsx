@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,21 +14,33 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { db, collection, addDoc } from "@/lib/firebase";
+import { db, collection, addDoc, updateDoc, doc } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { type Tower } from "@/app/dashboard/owner/projects/[id]/towers/page";
 
 interface AddTowerDialogProps {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
     projectId: string;
+    towerToEdit?: Tower | null;
 }
 
-export function AddTowerDialog({ isOpen, onOpenChange, projectId }: AddTowerDialogProps) {
+export function AddTowerDialog({ isOpen, onOpenChange, projectId, towerToEdit }: AddTowerDialogProps) {
     const [name, setName] = useState("");
     const [floors, setFloors] = useState("");
     const [unitsPerFloor, setUnitsPerFloor] = useState("");
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+
+    useEffect(() => {
+        if (towerToEdit) {
+            setName(towerToEdit.name);
+            setFloors(String(towerToEdit.floors));
+            setUnitsPerFloor(String(towerToEdit.unitsPerFloor));
+        } else {
+            resetForm();
+        }
+    }, [towerToEdit]);
 
     const resetForm = () => {
         setName("");
@@ -43,31 +55,46 @@ export function AddTowerDialog({ isOpen, onOpenChange, projectId }: AddTowerDial
         }
         setLoading(true);
         try {
-            await addDoc(collection(db, "towers"), {
+            const towerData = {
                 name,
                 floors: parseInt(floors),
                 unitsPerFloor: parseInt(unitsPerFloor),
                 projectId: projectId
-            });
+            };
+            
+            if (towerToEdit) {
+                // Update existing tower
+                const towerRef = doc(db, "towers", towerToEdit.id);
+                await updateDoc(towerRef, towerData);
+                toast({ title: "Success", description: "Tower updated successfully." });
+            } else {
+                // Add new tower
+                await addDoc(collection(db, "towers"), towerData);
+                toast({ title: "Success", description: "Tower added successfully." });
+            }
 
-            toast({ title: "Success", description: "Tower added successfully." });
             onOpenChange(false);
             resetForm();
         } catch (error) {
-            console.error("Error creating tower:", error);
-            toast({ title: "Error", description: "Could not add tower.", variant: "destructive" });
+            console.error("Error saving tower:", error);
+            toast({ title: "Error", description: "Could not save tower.", variant: "destructive" });
         } finally {
             setLoading(false);
         }
     };
+    
+    const handleClose = () => {
+        onOpenChange(false);
+        resetForm();
+    }
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => { onOpenChange(open); if (!open) resetForm(); }}>
+        <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
-                <DialogTitle>Add New Tower</DialogTitle>
+                <DialogTitle>{towerToEdit ? "Edit Tower" : "Add New Tower"}</DialogTitle>
                 <DialogDescription>
-                    Fill in the details for the new tower in your project.
+                    {towerToEdit ? "Update the details for this tower." : "Fill in the details for the new tower in your project."}
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -89,7 +116,7 @@ export function AddTowerDialog({ isOpen, onOpenChange, projectId }: AddTowerDial
                     <Button variant="outline">Cancel</Button>
                 </DialogClose>
                 <Button onClick={handleSubmit} disabled={loading}>
-                    {loading ? "Adding..." : "Add Tower"}
+                    {loading ? "Saving..." : "Save Changes"}
                 </Button>
             </DialogFooter>
             </DialogContent>

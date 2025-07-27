@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { PlusCircle, MoreHorizontal, Users, UserPlus, CheckCircle, TrendingUp } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Users, UserPlus, CheckCircle, TrendingUp, ArrowUpDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -31,20 +31,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { db, collection, addDoc, onSnapshot, doc, deleteDoc, serverTimestamp, query, orderBy } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+type LeadStatus = 'New' | 'Contacted' | 'Qualified' | 'Lost';
 interface Lead {
   id: string;
   name: string;
   email: string;
   phone: string;
-  status: 'New' | 'Contacted' | 'Qualified' | 'Lost';
+  status: LeadStatus;
   assignedTo: string;
   createdAt: any;
 }
+
+type SortKey = keyof Lead;
 
 export default function CrmPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -54,6 +58,10 @@ export default function CrmPage() {
     email: "",
     phone: "",
   });
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' } | null>({ key: 'createdAt', direction: 'descending' });
+  
   const { toast } = useToast();
   const router = useRouter();
 
@@ -114,7 +122,47 @@ export default function CrmPage() {
       default: return 'default';
     }
   }
-  
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedAndFilteredLeads = useMemo(() => {
+    let filteredLeads = [...leads];
+    
+    // Filter by status
+    if (statusFilter !== 'All') {
+      filteredLeads = filteredLeads.filter(lead => lead.status === statusFilter);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      filteredLeads = filteredLeads.filter(lead =>
+        lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Sort
+    if (sortConfig !== null) {
+      filteredLeads.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    
+    return filteredLeads;
+  }, [leads, statusFilter, searchTerm, sortConfig]);
+
   const newLeadsCount = leads.filter(l => l.status === 'New').length;
   const qualifiedLeadsCount = leads.filter(l => l.status === 'Qualified').length;
   const closedDeals = 15; // Sample data for conversion rate
@@ -181,26 +229,65 @@ export default function CrmPage() {
         
         <Card>
           <CardHeader>
-            <CardTitle>Customer Leads</CardTitle>
-            <CardDescription>
-              Manage potential customers and track their status.
-            </CardDescription>
+             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <CardTitle>Customer Leads</CardTitle>
+                    <CardDescription>
+                    Manage potential customers and track their status.
+                    </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                     <Input 
+                        placeholder="Filter by name or email..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="max-w-sm"
+                     />
+                     <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="All">All Statuses</SelectItem>
+                            <SelectItem value="New">New</SelectItem>
+                            <SelectItem value="Contacted">Contacted</SelectItem>
+                            <SelectItem value="Qualified">Qualified</SelectItem>
+                            <SelectItem value="Lost">Lost</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
           </CardHeader>
           <CardContent>
              <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('name')}>
+                        Name
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                     <Button variant="ghost" onClick={() => requestSort('email')}>
+                        Email
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('status')}>
+                        Status
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {leads.map((lead) => (
+                {sortedAndFilteredLeads.map((lead) => (
                   <TableRow key={lead.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => router.push(`/dashboard/crm/${lead.id}`)}>
                     <TableCell className="font-medium">{lead.name}</TableCell>
                     <TableCell>{lead.email}</TableCell>
@@ -228,7 +315,7 @@ export default function CrmPage() {
           </CardContent>
            <CardFooter>
             <div className="text-xs text-muted-foreground">
-              Showing <strong>{leads.length}</strong> of <strong>{leads.length}</strong> leads
+              Showing <strong>{sortedAndFilteredLeads.length}</strong> of <strong>{leads.length}</strong> leads
             </div>
           </CardFooter>
         </Card>
@@ -266,5 +353,3 @@ export default function CrmPage() {
       </Dialog>
     </>
   );
-
-    

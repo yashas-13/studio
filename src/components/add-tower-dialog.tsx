@@ -43,7 +43,7 @@ export function AddTowerDialog({ isOpen, onOpenChange, projectId, towerToEdit }:
         } else {
             resetForm();
         }
-    }, [towerToEdit]);
+    }, [towerToEdit, isOpen]);
 
     const resetForm = () => {
         setName("");
@@ -87,6 +87,9 @@ export function AddTowerDialog({ isOpen, onOpenChange, projectId, towerToEdit }:
                 // Auto-generate units for the new tower
                 const projectRef = doc(db, 'projects', projectId);
                 const projectSnap = await getDoc(projectRef);
+                if (!projectSnap.exists()) {
+                    throw new Error("Project not found");
+                }
                 const project = projectSnap.data() as Project;
 
                 for (let f = 1; f <= floorsNum; f++) {
@@ -104,6 +107,8 @@ export function AddTowerDialog({ isOpen, onOpenChange, projectId, towerToEdit }:
                             price: parseFloat(defaultPrice),
                             status: 'Available',
                             photoUrl: null,
+                            bookedByLeadId: null,
+                            bookedByLeadName: null,
                         };
                         await addDoc(collection(db, 'properties'), newProperty);
                     }

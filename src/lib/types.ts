@@ -13,8 +13,8 @@ export const PropertySchema = z.object({
   size: z.number(), // in sqft
   status: z.enum(['Available', 'Booked', 'Sold']),
   price: z.number(),
-  photoUrl: z.string().optional(),
-  bookedByLeadId: z.string().optional(),
-  bookedByLeadName: z.string().optional(),
+  photoUrl: z.string().nullable().optional(),
+  bookedByLeadId: z.string().nullable().optional(),
+  bookedByLeadName: z.string().nullable().optional(),
 });
 export type Property = z.infer<typeof PropertySchema>;

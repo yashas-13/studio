@@ -95,7 +95,9 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
                 size: parseFloat(size),
                 price: parseFloat(price),
                 status,
-                photoUrl: null
+                photoUrl: null,
+                bookedByLeadId: null,
+                bookedByLeadName: null,
             };
 
             if (photo) {

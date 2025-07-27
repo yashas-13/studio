@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { db, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, getDocs, updateDoc, getDoc, orderBy, serverTimestamp, limit } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface MaterialEntry {
   id: string;
@@ -39,6 +40,19 @@ interface MaterialEntry {
   quantity: number;
   unit: string;
   timestamp: any;
+}
+
+interface Project {
+  id: string;
+  name: string;
+}
+
+interface Material {
+  id: string;
+  name: string;
+  supplier: string;
+  project: string;
+  unit: string;
 }
 
 export default function MaterialEntryPage() {
@@ -54,9 +68,18 @@ export default function MaterialEntryPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  
+  const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
+  const [filteredSuppliers, setFilteredSuppliers] = useState<string[]>([]);
+  
+  const [isCustomMaterial, setIsCustomMaterial] = useState(false);
+  const [isCustomSupplier, setIsCustomSupplier] = useState(false);
 
   useEffect(() => {
-    // Fetches the last 5 material entries logged by this guard (or any guard for now)
+    // Fetches the last 5 material entries
     const q = query(collection(db, "materialEntries"), orderBy("timestamp", "desc"), limit(5));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const entriesData: MaterialEntry[] = [];
@@ -65,8 +88,66 @@ export default function MaterialEntryPage() {
       });
       setRecentEntries(entriesData);
     });
-    return () => unsubscribe();
+    
+    // Fetch all projects and materials for dropdowns
+    const unsubProjects = onSnapshot(collection(db, "projects"), (snapshot) => {
+        setProjects(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Project)));
+    });
+    
+    const unsubMaterials = onSnapshot(collection(db, "materials"), (snapshot) => {
+        setMaterials(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Material)));
+    });
+
+    return () => {
+        unsubscribe();
+        unsubProjects();
+        unsubMaterials();
+    };
   }, []);
+  
+  const handleProjectChange = (projectName: string) => {
+    setNewMaterial(prev => ({...prev, project: projectName, name: "", supplier: "", unit: ""}));
+    
+    const projectMaterials = materials.filter(m => m.project === projectName);
+    setFilteredMaterials(projectMaterials);
+    
+    const projectSuppliers = [...new Set(projectMaterials.map(m => m.supplier))];
+    setFilteredSuppliers(projectSuppliers);
+    
+    setIsCustomMaterial(false);
+    setIsCustomSupplier(false);
+  }
+  
+  const handleMaterialChange = (materialName: string) => {
+    if (materialName === 'other') {
+        setIsCustomMaterial(true);
+        setNewMaterial(prev => ({ ...prev, name: "", unit: "" }));
+    } else {
+        setIsCustomMaterial(false);
+        const selectedMaterial = filteredMaterials.find(m => m.name === materialName);
+        setNewMaterial(prev => ({
+            ...prev,
+            name: materialName,
+            unit: selectedMaterial?.unit || "",
+            supplier: selectedMaterial?.supplier || ""
+        }));
+        
+        if (selectedMaterial) {
+            setFilteredSuppliers([...new Set(materials.filter(m => m.project === newMaterial.project).map(m => m.supplier))]);
+        }
+    }
+  };
+
+  const handleSupplierChange = (supplierName: string) => {
+    if (supplierName === 'other') {
+        setIsCustomSupplier(true);
+        setNewMaterial(prev => ({ ...prev, supplier: "" }));
+    } else {
+        setIsCustomSupplier(false);
+        setNewMaterial(prev => ({ ...prev, supplier: supplierName }));
+    }
+  }
+
 
   const handleInputChange = (name: string, value: string) => {
     setNewMaterial(prev => ({ ...prev, [name]: value }));
@@ -91,30 +172,25 @@ export default function MaterialEntryPage() {
       return;
     }
 
-    // NOTE: In a real app, you would upload files to a service like Firebase Storage
-    // and get back URLs. For now, we'll just use placeholder names.
     const invoiceUrl = newMaterial.invoice ? `invoices/${newMaterial.invoice.name}` : undefined;
     const photoUrl = newMaterial.photo ? `photos/${newMaterial.photo.name}` : undefined;
 
     try {
-      // Check if material already exists for the project
       const q = query(collection(db, "materials"), where("name", "==", newMaterial.name), where("project", "==", newMaterial.project));
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
-        // Material exists, update stock
         const existingDoc = querySnapshot.docs[0];
         const currentQuantity = existingDoc.data().quantity || 0;
         await updateDoc(existingDoc.ref, {
           quantity: currentQuantity + quantity,
           lastUpdated: new Date().toISOString(),
-          supplier: newMaterial.supplier, // Update supplier to the latest one
+          supplier: newMaterial.supplier,
           status: "Delivered",
           invoiceUrl,
           photoUrl,
         });
       } else {
-        // New material, add to inventory
         await addDoc(collection(db, "materials"), {
           name: newMaterial.name,
           supplier: newMaterial.supplier,
@@ -128,19 +204,17 @@ export default function MaterialEntryPage() {
         });
       }
       
-      // Add to dedicated material entry log
       const entryLog = {
           name: newMaterial.name,
           supplier: newMaterial.supplier,
           project: newMaterial.project,
           quantity: quantity,
           unit: newMaterial.unit,
-          user: 'Entry Guard', // Placeholder user
+          user: 'Entry Guard',
           timestamp: serverTimestamp()
       }
       await addDoc(collection(db, "materialEntries"), entryLog);
 
-      // Add to global activity feed for owner notification
       const activityDetail = `${quantity} ${newMaterial.unit} of ${newMaterial.name} received for project ${newMaterial.project}.`;
       await addDoc(collection(db, "activityFeed"), {
         type: 'MATERIAL_ENTRY',
@@ -151,6 +225,8 @@ export default function MaterialEntryPage() {
 
       toast({ title: "Success", description: `${newMaterial.name} added to inventory.` });
       setNewMaterial({ name: "", supplier: "", project: "", quantity: "", unit: "", invoice: null, photo: null });
+      setIsCustomMaterial(false);
+      setIsCustomSupplier(false);
 
     } catch (error) {
       console.error("Error adding material: ", error);
@@ -165,6 +241,8 @@ export default function MaterialEntryPage() {
     return ts.toDate().toLocaleString();
   };
 
+  const uniqueMaterialNames = [...new Set(filteredMaterials.map(m => m.name))];
+
   return (
     <div className="grid flex-1 items-start gap-4 lg:grid-cols-3 lg:gap-8">
       <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
@@ -178,16 +256,47 @@ export default function MaterialEntryPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-6">
+                <div className="grid gap-2">
+                    <Label htmlFor="project">Project Destination</Label>
+                    <Select value={newMaterial.project} onValueChange={handleProjectChange}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {projects.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="name">Material</Label>
-                        <Input id="name" value={newMaterial.name} onChange={(e) => handleInputChange('name', e.target.value)} placeholder="e.g., Ready-Mix Concrete" />
+                        <Select onValueChange={handleMaterialChange} value={isCustomMaterial ? 'other' : newMaterial.name} disabled={!newMaterial.project}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a material" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {uniqueMaterialNames.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+                                <SelectItem value="other">Other (New Material)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {isCustomMaterial && <Input className="mt-2" value={newMaterial.name} onChange={e => handleInputChange('name', e.target.value)} placeholder="Enter new material name" />}
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="supplier">Supplier</Label>
-                        <Input id="supplier" value={newMaterial.supplier} onChange={(e) => handleInputChange('supplier', e.target.value)} />
+                         <Select onValueChange={handleSupplierChange} value={isCustomSupplier ? 'other' : newMaterial.supplier} disabled={!newMaterial.project || !newMaterial.name}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a supplier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {filteredSuppliers.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                <SelectItem value="other">Other (New Supplier)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {isCustomSupplier && <Input className="mt-2" value={newMaterial.supplier} onChange={e => handleInputChange('supplier', e.target.value)} placeholder="Enter new supplier name" />}
                     </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="grid gap-2">
                         <Label htmlFor="quantity">Quantity</Label>
@@ -195,13 +304,10 @@ export default function MaterialEntryPage() {
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="unit">Unit</Label>
-                        <Input id="unit" value={newMaterial.unit} onChange={(e) => handleInputChange('unit', e.target.value)} placeholder="e.g., m³, tons, sheets" />
+                        <Input id="unit" value={newMaterial.unit} onChange={(e) => handleInputChange('unit', e.target.value)} placeholder="e.g., m³, tons, sheets" readOnly={!isCustomMaterial} />
                     </div>
                 </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="project">Project Destination</Label>
-                    <Input id="project" value={newMaterial.project} onChange={(e) => handleInputChange('project', e.target.value)} placeholder="e.g., Downtown Tower" />
-                </div>
+
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="invoice">Invoice (Optional)</Label>
@@ -256,3 +362,5 @@ export default function MaterialEntryPage() {
     </div>
   );
 }
+
+    

@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import {
@@ -172,36 +173,33 @@ export default function MaterialEntryPage() {
       return;
     }
 
-    const invoiceUrl = newMaterial.invoice ? `invoices/${newMaterial.invoice.name}` : undefined;
-    const photoUrl = newMaterial.photo ? `photos/${newMaterial.photo.name}` : undefined;
-
     try {
       const q = query(collection(db, "materials"), where("name", "==", newMaterial.name), where("project", "==", newMaterial.project));
       const querySnapshot = await getDocs(q);
       
+      const payload: any = {
+        quantity: 0,
+        lastUpdated: new Date().toISOString(),
+        supplier: newMaterial.supplier,
+        status: "Delivered"
+      };
+      
+      if (newMaterial.invoice) payload.invoiceUrl = `invoices/${newMaterial.invoice.name}`;
+      if (newMaterial.photo) payload.photoUrl = `photos/${newMaterial.photo.name}`;
+      
       if (!querySnapshot.empty) {
         const existingDoc = querySnapshot.docs[0];
         const currentQuantity = existingDoc.data().quantity || 0;
-        await updateDoc(existingDoc.ref, {
-          quantity: currentQuantity + quantity,
-          lastUpdated: new Date().toISOString(),
-          supplier: newMaterial.supplier,
-          status: "Delivered",
-          invoiceUrl,
-          photoUrl,
-        });
+        payload.quantity = currentQuantity + quantity;
+
+        await updateDoc(existingDoc.ref, payload);
       } else {
-        await addDoc(collection(db, "materials"), {
-          name: newMaterial.name,
-          supplier: newMaterial.supplier,
-          project: newMaterial.project,
-          quantity: quantity,
-          unit: newMaterial.unit,
-          status: "Delivered",
-          lastUpdated: new Date().toISOString(),
-          invoiceUrl,
-          photoUrl,
-        });
+        payload.name = newMaterial.name;
+        payload.project = newMaterial.project;
+        payload.unit = newMaterial.unit;
+        payload.quantity = quantity;
+        
+        await addDoc(collection(db, "materials"), payload);
       }
       
       const entryLog = {

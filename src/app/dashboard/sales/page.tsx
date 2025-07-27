@@ -77,6 +77,7 @@ export default function SalesDashboardPage() {
       phone: "",
       requirements: "",
       projectId: "",
+      unitType: "",
     });
     const { toast } = useToast();
 
@@ -131,8 +132,18 @@ export default function SalesDashboardPage() {
 
       try {
         const selectedProject = projects.find(p => p.id === newLead.projectId);
+        
+        // Append unit type to requirements text
+        const finalRequirements = newLead.unitType 
+            ? `${newLead.unitType}. ${newLead.requirements}` 
+            : newLead.requirements;
+
         await addDoc(collection(db, "leads"), {
-          ...newLead,
+          name: newLead.name,
+          email: newLead.email,
+          phone: newLead.phone,
+          requirements: finalRequirements,
+          projectId: newLead.projectId,
           projectName: selectedProject?.name,
           status: "New",
           assignedTo: "Anjali Sharma", // Placeholder, ideally this would be the logged in user's name
@@ -140,7 +151,7 @@ export default function SalesDashboardPage() {
         });
         toast({ title: "Success", description: "New lead added." });
         setIsDialogOpen(false);
-        setNewLead({ name: "", email: "", phone: "", requirements: "", projectId: "" });
+        setNewLead({ name: "", email: "", phone: "", requirements: "", projectId: "", unitType: "" });
       } catch (error) {
         console.error("Error adding lead: ", error);
         toast({ title: "Error", description: "Could not add lead.", variant: "destructive" });
@@ -329,9 +340,24 @@ export default function SalesDashboardPage() {
                 </SelectContent>
               </Select>
             </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="unitType" className="text-right">Unit Type</Label>
+                <Select value={newLead.unitType} onValueChange={(value) => handleInputChange('unitType', value)}>
+                    <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select a unit type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="1BHK">1BHK</SelectItem>
+                        <SelectItem value="2BHK">2BHK</SelectItem>
+                        <SelectItem value="3BHK">3BHK</SelectItem>
+                        <SelectItem value="Penthouse">Penthouse</SelectItem>
+                        <SelectItem value="Office Space">Office Space</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="requirements" className="text-right">Requirements</Label>
-              <Textarea id="requirements" value={newLead.requirements} onChange={(e) => handleInputChange('requirements', e.target.value)} className="col-span-3" placeholder="e.g., 3BHK, corner unit, high floor..." />
+              <Textarea id="requirements" value={newLead.requirements} onChange={(e) => handleInputChange('requirements', e.target.value)} className="col-span-3" placeholder="e.g., corner unit, high floor..." />
             </div>
           </div>
           <DialogFooter>

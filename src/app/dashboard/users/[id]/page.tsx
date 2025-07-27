@@ -10,8 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Mail, User, Shield, Activity, Users, CheckCircle, DollarSign, Briefcase } from 'lucide-react';
+import { ArrowLeft, Mail, User, Shield, Activity, Users, CheckCircle, DollarSign, Briefcase, GanttChartSquare } from 'lucide-react';
 import { type Lead } from '../../crm/page';
+import { type Project } from '../../owner/projects/page';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface UserProfile {
@@ -33,6 +34,7 @@ export default function UserProfilePage() {
   const { id } = params;
   const [user, setUser] = useState<UserProfile | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<SalesRepStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,6 +48,8 @@ export default function UserProfilePage() {
           
           if (userData.role === 'salesrep') {
             fetchLeads(userData.name);
+          } else if (userData.role === 'sitemanager') {
+            fetchProjects(userData.name);
           } else {
             setLoading(false);
           }
@@ -68,6 +72,14 @@ export default function UserProfilePage() {
             qualifiedLeads: qualifiedLeads,
             revenue: qualifiedLeads * 750000 // Placeholder calculation
         });
+        setLoading(false);
+    }
+    
+    const fetchProjects = async (userName: string) => {
+        const q = query(collection(db, "projects"), where("siteEngineer", "==", userName));
+        const projectSnapshot = await getDocs(q);
+        const userProjects = projectSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+        setProjects(userProjects);
         setLoading(false);
     }
 
@@ -127,6 +139,25 @@ export default function UserProfilePage() {
                             <div className="flex items-center gap-2 text-muted-foreground"><DollarSign className="h-4 w-4" /><span>Revenue (Est.)</span></div>
                             <span className="font-semibold">₹{stats.revenue.toLocaleString('en-IN')}</span>
                         </div>
+                    </CardContent>
+                </Card>
+            )}
+             {user.role === 'sitemanager' && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Project Assignments</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-muted-foreground"><GanttChartSquare className="h-4 w-4" /><span>Active Projects</span></div>
+                            <span className="font-semibold">{projects.length}</span>
+                        </div>
+                         <p className="text-xs text-muted-foreground pt-2">Manages the following projects:</p>
+                         <div className="space-y-2">
+                             {projects.length > 0 ? projects.map(p => (
+                                 <div key={p.id} className="text-sm p-2 bg-muted rounded-md cursor-pointer hover:bg-muted/80" onClick={() => router.push(`/dashboard/owner/projects/${p.id}`)}>{p.name}</div>
+                             )) : <p className="text-xs text-muted-foreground">No projects assigned.</p>}
+                         </div>
                     </CardContent>
                 </Card>
             )}

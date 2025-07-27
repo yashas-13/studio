@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -11,13 +11,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Mail, Phone, User, Activity, TrendingUp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { type LeadStatus } from '../page';
+
 
 interface Lead {
   id: string;
   name: string;
   email: string;
   phone: string;
-  status: 'New' | 'Contacted' | 'Qualified' | 'Lost';
+  status: LeadStatus;
   assignedTo: string;
 }
 
@@ -27,6 +31,7 @@ export default function LeadProfilePage() {
   const { id } = params;
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (typeof id === 'string') {
@@ -43,14 +48,6 @@ export default function LeadProfilePage() {
     }
   }, [id, router]);
 
-  if (loading) {
-    return <LeadProfileSkeleton />;
-  }
-
-  if (!lead) {
-    return <div>Lead not found.</div>;
-  }
-
   const getStatusVariant = (status: Lead['status']): "secondary" | "outline" | "default" | "destructive" => {
     switch (status) {
       case 'New': return 'default';
@@ -59,6 +56,26 @@ export default function LeadProfilePage() {
       case 'Lost': return 'destructive';
       default: return 'default';
     }
+  }
+
+  const handleStatusChange = async (newStatus: LeadStatus) => {
+    if (!lead) return;
+    try {
+        const leadRef = doc(db, 'leads', lead.id);
+        await updateDoc(leadRef, { status: newStatus });
+        toast({ title: "Status Updated", description: `${lead.name}'s status changed to ${newStatus}.`});
+    } catch (error) {
+        console.error("Error updating status: ", error);
+        toast({ title: "Error", description: "Could not update lead status.", variant: "destructive" });
+    }
+  }
+
+  if (loading) {
+    return <LeadProfileSkeleton />;
+  }
+
+  if (!lead) {
+    return <div>Lead not found.</div>;
   }
 
   return (
@@ -83,7 +100,22 @@ export default function LeadProfilePage() {
                             <AvatarFallback>{lead.name.charAt(0).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <h2 className="text-xl font-semibold">{lead.name}</h2>
-                        <Badge className="mt-2 capitalize" variant={getStatusVariant(lead.status)}>{lead.status}</Badge>
+                        <div className="mt-2">
+                             <Select value={lead.status} onValueChange={handleStatusChange}>
+                                <SelectTrigger className="w-[120px]">
+                                    <SelectValue>
+                                         <Badge className="capitalize" variant={getStatusVariant(lead.status)}>{lead.status}</Badge>
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="New">New</SelectItem>
+                                    <SelectItem value="Contacted">Contacted</SelectItem>
+                                    <SelectItem value="Qualified">Qualified</SelectItem>
+                                    <SelectItem value="Lost">Lost</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                     </div>
                     <div className="mt-6 space-y-3 text-sm">
                         <div className="flex items-center gap-3">

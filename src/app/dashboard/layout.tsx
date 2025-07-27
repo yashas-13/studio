@@ -77,7 +77,7 @@ export default function DashboardLayout({
   ];
   
   const entryGuardNavLinks = [
-      { href: "/dashboard/materials", icon: Package, label: "Inventory"},
+      { href: "/dashboard/material-entry", icon: Package, label: "Material Entry"},
   ];
 
   const salesRepNavLinks = [

@@ -3,30 +3,22 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Mail, Phone, User, Activity, Briefcase, MessageSquare, PhoneCall, Users, Sparkles, Loader2, MoveRight } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Activity, Briefcase, MessageSquare, PhoneCall, Users, Sparkles, Loader2, MoveRight, Building, Home } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { type LeadStatus } from '../page';
+import { type LeadStatus, type Lead } from '../page';
 import { Textarea } from '@/components/ui/textarea';
 import { analyzeLead, type AnalyzeLeadOutput } from '@/ai/flows/lead-analysis';
+import { recommendProperties, type PropertyRecommendationInput, type Property } from '@/ai/flows/property-recommendation';
+import Link from 'next/link';
 
-
-interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  status: LeadStatus;
-  assignedTo: string;
-  requirements: string;
-}
 
 interface ActivityItem {
     id: string;
@@ -47,6 +39,8 @@ export default function LeadProfilePage() {
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeLeadOutput | null>(null);
+  const [isRecommending, setIsRecommending] = useState(false);
+  const [recommendations, setRecommendations] = useState<Property[] | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -145,6 +139,40 @@ export default function LeadProfilePage() {
         setIsAnalyzing(false);
     }
   };
+
+  const handleGetRecommendations = async () => {
+    if (!lead) return;
+    setIsRecommending(true);
+    setRecommendations(null);
+
+    try {
+        const q = query(collection(db, "properties"), where("status", "==", "Available"));
+        const snapshot = await getDocs(q);
+        const availableProperties = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Property[];
+
+        if (availableProperties.length === 0) {
+            toast({ title: "No Inventory", description: "No available properties found in the inventory to recommend." });
+            return;
+        }
+
+        const input: PropertyRecommendationInput = {
+            requirements: lead.requirements,
+            properties: availableProperties,
+        }
+
+        const result = await recommendProperties(input);
+
+        const recommendedProps = availableProperties.filter(p => result.recommendedPropertyIds.includes(p.id));
+
+        setRecommendations(recommendedProps);
+
+    } catch(e) {
+        console.error("Error getting recommendations:", e);
+        toast({ title: "Recommendation Error", description: "Could not get AI property recommendations.", variant: 'destructive'});
+    } finally {
+        setIsRecommending(false);
+    }
+  }
   
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
@@ -306,6 +334,44 @@ export default function LeadProfilePage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>AI Property Recommendations</CardTitle>
+                    <CardDescription>Find matching properties based on lead's requirements.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Button onClick={handleGetRecommendations} disabled={isRecommending || !lead.requirements} className="w-full">
+                        {isRecommending ? <Loader2 className="animate-spin mr-2"/> : <Home className="mr-2" />}
+                        Find Matching Properties
+                    </Button>
+                     {isRecommending && (
+                        <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    )}
+                    {recommendations && (
+                        <div className="space-y-4 pt-4">
+                            {recommendations.length > 0 ? (
+                                recommendations.map(prop => (
+                                    <Link key={prop.id} href="/dashboard/inventory">
+                                        <div className="p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer">
+                                            <div className="font-semibold">{prop.unitNumber} in {prop.project}</div>
+                                            <div className="text-sm text-muted-foreground flex justify-between">
+                                                <span>{prop.type} / {prop.size} sqft</span>
+                                                <span className="font-medium text-foreground">₹{prop.price.toLocaleString('en-IN')}</span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center p-4">No suitable properties found in the current inventory.</p>
+                            )}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle>Follow-Up History</CardTitle>
@@ -389,5 +455,3 @@ function LeadProfileSkeleton() {
         </div>
     )
 }
-
-    

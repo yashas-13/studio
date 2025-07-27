@@ -8,5 +8,6 @@ import '@/ai/flows/material-forecasting.ts';
 import '@/ai/flows/ai-driven-defect-detection.ts';
 import '@/ai/flows/automated-compliance-checks.ts';
 import '@/ai/flows/lead-analysis.ts';
+import '@/ai/flows/property-recommendation.ts';
 
     

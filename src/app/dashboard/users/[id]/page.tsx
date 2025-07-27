@@ -3,42 +3,75 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Mail, User, Shield, Activity } from 'lucide-react';
+import { ArrowLeft, Mail, User, Shield, Activity, Users, CheckCircle, DollarSign, Briefcase } from 'lucide-react';
+import { type Lead } from '../../crm/page';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-interface User {
+interface UserProfile {
   id: string;
   name: string;
   email: string;
   role: string;
 }
 
+interface SalesRepStats {
+    assignedLeads: number;
+    qualifiedLeads: number;
+    revenue: number; // Placeholder
+}
+
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [stats, setStats] = useState<SalesRepStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof id === 'string') {
-      const unsub = onSnapshot(doc(db, 'users', id), (doc) => {
+    if (typeof id !== 'string') return;
+    
+    const userUnsub = onSnapshot(doc(db, 'users', id), (doc) => {
         if (doc.exists()) {
-          setUser({ id: doc.id, ...doc.data() } as User);
+          const userData = { id: doc.id, ...doc.data() } as UserProfile;
+          setUser(userData);
+          
+          if (userData.role === 'salesrep') {
+            fetchLeads(userData.name);
+          } else {
+            setLoading(false);
+          }
+
         } else {
-          // Handle user not found
           router.push('/dashboard/users');
+          setLoading(false);
         }
-        setLoading(false);
       });
-      return () => unsub();
+
+    const fetchLeads = async (userName: string) => {
+        const q = query(collection(db, "leads"), where("assignedTo", "==", userName));
+        const leadSnapshot = await getDocs(q);
+        const userLeads = leadSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
+        setLeads(userLeads);
+        
+        const qualifiedLeads = userLeads.filter(l => l.status === 'Qualified').length;
+        setStats({
+            assignedLeads: userLeads.length,
+            qualifiedLeads: qualifiedLeads,
+            revenue: qualifiedLeads * 750000 // Placeholder calculation
+        });
+        setLoading(false);
     }
+
+    return () => userUnsub();
   }, [id, router]);
 
   if (loading) {
@@ -62,7 +95,7 @@ export default function UserProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
              <Card>
                 <CardContent className="pt-6">
                     <div className="flex flex-col items-center text-center">
@@ -76,19 +109,59 @@ export default function UserProfilePage() {
                     </div>
                 </CardContent>
             </Card>
+            {user.role === 'salesrep' && stats && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Sales Performance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" /><span>Leads Assigned</span></div>
+                            <span className="font-semibold">{stats.assignedLeads}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-muted-foreground"><CheckCircle className="h-4 w-4" /><span>Deals Closed</span></div>
+                            <span className="font-semibold">{stats.qualifiedLeads}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-muted-foreground"><DollarSign className="h-4 w-4" /><span>Revenue (Est.)</span></div>
+                            <span className="font-semibold">₹{stats.revenue.toLocaleString('en-IN')}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
         <div className="lg:col-span-2">
             <div className="grid gap-6">
+                {user.role === 'salesrep' && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Performance Metrics</CardTitle>
-                        <CardDescription>Overall performance and key metrics for this user.</CardDescription>
+                        <CardTitle>Assigned Leads</CardTitle>
+                        <CardDescription>All leads currently assigned to {user.name}.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground text-center">Performance metrics coming soon.</p>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Lead Name</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Requirements</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {leads.length > 0 ? leads.map(lead => (
+                                    <TableRow key={lead.id} onClick={() => router.push(`/dashboard/crm/${lead.id}`)} className="cursor-pointer">
+                                        <TableCell>{lead.name}</TableCell>
+                                        <TableCell><Badge variant="outline">{lead.status}</Badge></TableCell>
+                                        <TableCell className="truncate text-muted-foreground max-w-xs">{lead.requirements}</TableCell>
+                                    </TableRow>
+                                )) : <TableRow><TableCell colSpan={3} className="text-center">No leads assigned.</TableCell></TableRow>}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
-                <Card>
+                )}
+                 <Card>
                     <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>
                         <CardDescription>A log of the user's recent actions within the system.</CardDescription>
@@ -132,7 +205,7 @@ function UserProfileSkeleton() {
                              <Skeleton className="h-4 w-56" />
                         </CardHeader>
                          <CardContent>
-                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-24 w-full" />
                         </CardContent>
                     </Card>
                      <Card>

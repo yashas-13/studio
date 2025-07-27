@@ -153,16 +153,18 @@ export default function ProjectDetailsPage() {
                     <CardDescription>Quick links to project resources.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start gap-2" disabled>
-                        <ListTodo /> Task List
+                    <Button asChild variant="outline" className="w-full justify-start gap-2">
+                        <Link href={`/dashboard/owner/projects/${project.id}/tasks`}>
+                            <ListTodo /> Task List
+                        </Link>
                     </Button>
                     <Button asChild variant="outline" className="w-full justify-start gap-2">
-                        <Link href="/dashboard/usage">
+                        <Link href={`/dashboard/owner/projects/${project.id}/usage`}>
                             <Construction /> Material Usage
                         </Link>
                     </Button>
                     <Button asChild variant="outline" className="w-full justify-start gap-2">
-                        <Link href="/dashboard/file-sharing">
+                        <Link href={`/dashboard/owner/projects/${project.id}/files`}>
                             <GalleryVertical /> Photo Gallery
                         </Link>
                     </Button>

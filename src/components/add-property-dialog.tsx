@@ -32,6 +32,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
     const [size, setSize] = useState("");
     const [price, setPrice] = useState("");
     const [status, setStatus] = useState("Available");
+    const [photo, setPhoto] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
@@ -42,6 +43,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
         setSize("");
         setPrice("");
         setStatus("Available");
+        setPhoto(null);
     }
 
     const handleSubmit = async () => {
@@ -53,14 +55,25 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
         try {
             const selectedProject = projects.find(p => p.id === project);
             
-            await addDoc(collection(db, "properties"), {
+            // In a real app, you'd upload the photo to Firebase Storage and get the URL
+            // For now, we'll just log that a photo was selected.
+            const newProperty: any = {
                 unitNumber,
                 project: selectedProject?.name,
                 type,
                 size: parseFloat(size),
                 price: parseFloat(price),
                 status,
-            });
+            };
+
+            if (photo) {
+                // Placeholder for upload logic
+                // newProperty.photoUrl = await uploadFileAndGetURL(photo);
+                console.log("Photo selected, but upload logic is not implemented.");
+            }
+
+            await addDoc(collection(db, "properties"), newProperty);
+
             toast({ title: "Success", description: "Property added successfully." });
             onOpenChange(false);
             resetForm();
@@ -74,7 +87,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { onOpenChange(open); if (!open) resetForm(); }}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
                 <DialogTitle>Add New Property</DialogTitle>
                 <DialogDescription>
@@ -123,6 +136,10 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
                             <SelectItem value="Sold">Sold</SelectItem>
                         </SelectContent>
                     </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="photo" className="text-right">Photo</Label>
+                    <Input id="photo" type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files ? e.target.files[0] : null)} className="col-span-3" />
                 </div>
             </div>
             <DialogFooter>

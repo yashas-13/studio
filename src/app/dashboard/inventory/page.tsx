@@ -21,6 +21,7 @@ interface Property {
   size: number; // in sqft
   status: 'Available' | 'Booked' | 'Sold';
   price: number;
+  photoUrl?: string;
 }
 
 export default function InventoryPage() {
@@ -120,7 +121,7 @@ export default function InventoryPage() {
               <Card key={prop.id} className="flex flex-col overflow-hidden">
                   <div className="relative">
                       <Image 
-                          src={`https://placehold.co/600x400.png`} 
+                          src={prop.photoUrl || `https://placehold.co/600x400.png`} 
                           alt={`${prop.project} - Unit ${prop.unitNumber}`}
                           width={600}
                           height={400}

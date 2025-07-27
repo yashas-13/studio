@@ -60,9 +60,9 @@ interface ActivityFeedItem {
   }
   
 const upcomingFollowUps = [
-    { leadName: "Rohan Verma", task: "Call to discuss final quote", due: "Tomorrow" },
-    { leadName: "Priya Desai", task: "Send floor plan options", due: "Today" },
-    { leadName: "Amit Patel", task: "Schedule site visit", due: "In 3 days" },
+    { leadName: "Rohan Verma", task: "Call to discuss final quote", due: "1 day ago", status: "Overdue" },
+    { leadName: "Priya Desai", task: "Send floor plan options", due: "Today", status: "Today" },
+    { leadName: "Amit Patel", task: "Schedule site visit", due: "In 3 days", status: "Upcoming" },
 ];
 
 export default function SalesDashboardPage() {
@@ -166,6 +166,16 @@ export default function SalesDashboardPage() {
         if (diffHours < 24) return `${diffHours}h ago`;
         return date.toLocaleDateString();
     }
+    
+    const getStatusVariant = (status: string): "destructive" | "secondary" | "outline" => {
+        switch(status) {
+            case 'Overdue': return 'destructive';
+            case 'Today': return 'secondary';
+            case 'Upcoming':
+            default:
+                return 'outline';
+        }
+    }
 
   return (
     <>
@@ -229,7 +239,7 @@ export default function SalesDashboardPage() {
             <div className="grid gap-2">
               <CardTitle>Upcoming Follow-ups</CardTitle>
               <CardDescription>
-                Tasks and reminders to keep you on track.
+                Tasks and reminders to keep you on track. (Sample Data)
               </CardDescription>
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
@@ -246,6 +256,7 @@ export default function SalesDashboardPage() {
                     <TableHead>Lead</TableHead>
                     <TableHead>Task</TableHead>
                     <TableHead>Due</TableHead>
+                    <TableHead>Status</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -257,8 +268,11 @@ export default function SalesDashboardPage() {
                         <TableCell>
                             <div className="text-muted-foreground">{item.task}</div>
                         </TableCell>
+                         <TableCell>
+                            <div className="text-muted-foreground">{item.due}</div>
+                        </TableCell>
                         <TableCell>
-                            <Badge variant="outline">{item.due}</Badge>
+                            <Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>
                         </TableCell>
                     </TableRow>
                     ))}

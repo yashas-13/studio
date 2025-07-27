@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import Link from "next/link";
-import { Mail, Phone, User } from "lucide-react";
+import { Mail, Phone, User, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface LeadPipelineProps {
@@ -38,7 +38,11 @@ export function LeadPipeline({ leads, loading }: LeadPipelineProps) {
             <Phone className="h-3 w-3" />
             <span>{lead.phone || 'N/A'}</span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-start gap-2 text-muted-foreground border-t pt-3 mt-2">
+            <FileText className="h-3 w-3 mt-0.5" />
+            <p className="truncate flex-1">{lead.requirements || 'No requirements specified.'}</p>
+        </div>
+        <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2">
                 <User className="h-3 w-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Assigned to: {lead.assignedTo}</span>

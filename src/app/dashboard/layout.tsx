@@ -22,11 +22,18 @@ import {
   SlidersHorizontal,
   Users,
   Voicemail,
+  Menu,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({
   children,
@@ -37,6 +44,11 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false)
+ 
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -58,6 +70,8 @@ export default function DashboardLayout({
   const siteManagerNavLinks = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
     { href: "/dashboard/materials", icon: Package, label: "Materials" },
+    { href: "/dashboard/reports", icon: LineChart, label: "Reports" },
+    { href: "/dashboard/timeline", icon: GanttChartSquare, label: "Timeline" },
     { href: "/dashboard/usage", icon: ShoppingCart, label: "Usage" },
     { href: "/dashboard/ai-tools", icon: Bot, label: "AI Tools" },
   ];

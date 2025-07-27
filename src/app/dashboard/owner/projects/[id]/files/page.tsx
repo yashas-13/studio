@@ -80,7 +80,7 @@ export default function ProjectFilesPage() {
                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {imageFiles.map(file => (
                                 <div key={file.id} className="relative aspect-square group">
-                                    <Image src={file.url || `https://placehold.co/400x400.png`} alt={file.name} layout="fill" className="object-cover rounded-lg" data-ai-hint="construction site progress" />
+                                    <Image src={file.url || `https://placehold.co/400x400.png`} alt={file.name} fill={true} className="object-cover rounded-lg" data-ai-hint="construction site progress" />
                                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2 text-xs rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
                                         {file.name}
                                     </div>

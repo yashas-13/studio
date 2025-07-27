@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Mail, Phone, User, Activity, TrendingUp, MessageSquare, Briefcase, PhoneCall, Users, Plus } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Activity, Briefcase, MessageSquare, PhoneCall, Users } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { type LeadStatus } from '../page';
@@ -320,5 +320,3 @@ function LeadProfileSkeleton() {
         </div>
     )
 }
-
-    

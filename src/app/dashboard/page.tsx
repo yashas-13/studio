@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { db, collection, addDoc, onSnapshot, getDocs, query, orderBy, limit, where } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, getDocs, query, orderBy, limit, where, serverTimestamp } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface Material {
@@ -85,10 +85,17 @@ const sampleMaterials = [
     { name: "Electrical Wiring", quantity: 5000, unit: "ft", supplier: "Southwire", status: "Delayed", project: "Suburb Complex", lastUpdated: new Date().toISOString() },
 ];
 
+const sampleLeads = [
+    { name: "Rohan Verma", email: "rohan.verma@email.com", phone: "+919876543210", status: "New", assignedTo: "Anjali Sharma", requirements: "3BHK with park view", createdAt: serverTimestamp() },
+    { name: "Priya Desai", email: "priya.desai@email.com", phone: "+919123456789", status: "Contacted", assignedTo: "Rohan Kumar", requirements: "Looking for a penthouse", createdAt: serverTimestamp() },
+    { name: "Amit Patel", email: "amit.patel@email.com", phone: "+919988776655", status: "Qualified", assignedTo: "Anjali Sharma", requirements: "Wants to book a 2BHK immediately", createdAt: serverTimestamp() },
+    { name: "Sunita Reddy", email: "sunita.reddy@email.com", phone: "+919654321098", status: "Lost", assignedTo: "Rohan Kumar", requirements: "Budget constraints", createdAt: serverTimestamp() }
+];
+
 const sampleFiles = [
-    { name: "Architectural-Plans-Rev2.pdf", type: "Document", uploadedBy: "Owner", role: "Owner", date: "2024-07-20", size: "12.5 MB" },
-    { name: "Structural-Calculations.xlsx", type: "Spreadsheet", uploadedBy: "Engineer", role: "Engineer", date: "2024-07-21", size: "2.1 MB" },
-    { name: "Site-Photo-2024-07-22.jpg", type: "Image", uploadedBy: "Site Admin", role: "Admin", date: "2024-07-22", size: "4.8 MB" },
+    { name: "Architectural-Plans-Rev2.pdf", type: "Document", uploadedBy: "Owner", role: "Owner", date: "2024-07-20", size: "12.5 MB", projectId: "" },
+    { name: "Structural-Calculations.xlsx", type: "Spreadsheet", uploadedBy: "Engineer", role: "Engineer", date: "2024-07-21", size: "2.1 MB", projectId: "" },
+    { name: "Site-Photo-2024-07-22.jpg", type: "Image", uploadedBy: "Site Admin", role: "Admin", date: "2024-07-22", size: "4.8 MB", projectId: "" },
 ];
 
 export default function Dashboard() {
@@ -153,14 +160,18 @@ export default function Dashboard() {
             }
         }
         
-        for (const project of sampleProjects) {
-            const q = query(collection(db, "projects"), where("name", "==", project.name));
-            const snap = await getDocs(q);
-            if (snap.empty) {
+        const projectDocs = await getDocs(collection(db, "projects"));
+        if (projectDocs.empty) {
+            for (const project of sampleProjects) {
                 await addDoc(collection(db, "projects"), project);
                 seededCount++;
             }
         }
+        const projectNameToId: {[key: string]: string} = {};
+        const projectSnapshot = await getDocs(collection(db, "projects"));
+        projectSnapshot.forEach(doc => {
+            projectNameToId[doc.data().name] = doc.id;
+        })
 
         for (const material of sampleMaterials) {
             const q = query(collection(db, "materials"), where("name", "==", material.name), where("project", "==", material.project));
@@ -175,7 +186,19 @@ export default function Dashboard() {
             const q = query(collection(db, "files"), where("name", "==", file.name));
             const snap = await getDocs(q);
             if (snap.empty) {
-                await addDoc(collection(db, "files"), file);
+                // Assign a random project ID for demonstration
+                const projectIds = Object.values(projectNameToId);
+                const randomProjectId = projectIds[Math.floor(Math.random() * projectIds.length)];
+                await addDoc(collection(db, "files"), {...file, projectId: randomProjectId});
+                seededCount++;
+            }
+        }
+        
+        for (const lead of sampleLeads) {
+            const q = query(collection(db, "leads"), where("email", "==", lead.email));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                await addDoc(collection(db, "leads"), lead);
                 seededCount++;
             }
         }
@@ -408,7 +431,3 @@ export default function Dashboard() {
     </>
   );
 }
-
-    
-
-    

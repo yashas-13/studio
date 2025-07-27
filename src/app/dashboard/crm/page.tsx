@@ -32,7 +32,7 @@ function CrmPageComponent() {
   useEffect(() => {
     let q;
     if (status && status !== 'all') {
-      q = query(collection(db, "leads"), where("status", "==", status), orderBy("createdAt", "desc"));
+      q = query(collection(db, "leads"), where("status", "==", status));
     } else {
       q = query(collection(db, "leads"), orderBy("createdAt", "desc"));
     }

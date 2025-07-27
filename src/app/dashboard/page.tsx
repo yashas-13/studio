@@ -73,9 +73,9 @@ const sampleUsers = [
 ];
 
 const sampleProjects = [
-    { name: "Downtown Tower", description: "45-story high-rise commercial building.", location: "Mumbai, MH", siteEngineer: "Sanjay Sharma", status: 'In Progress', budget: 50000000, spent: 25000000, progress: 50, createdAt: new Date() },
-    { name: "North Bridge", description: "Suspension bridge construction over the river.", location: "Delhi, DL", siteEngineer: "Sanjay Sharma", status: 'Planning', budget: 120000000, spent: 5000000, progress: 5, createdAt: new Date() },
-    { name: "Suburb Complex", description: "Residential complex with 5 towers.", location: "Bengaluru, KA", siteEngineer: "Sanjay Sharma", status: 'Completed', budget: 80000000, spent: 78000000, progress: 100, createdAt: new Date() },
+    { name: "Downtown Tower", description: "45-story high-rise commercial building.", location: "Mumbai, MH", siteEngineer: "Sanjay Sharma", entryGuard: "Rajesh Gupta", status: 'In Progress', budget: 50000000, spent: 25000000, progress: 50, createdAt: new Date() },
+    { name: "North Bridge", description: "Suspension bridge construction over the river.", location: "Delhi, DL", siteEngineer: "Sanjay Sharma", entryGuard: "Rajesh Gupta", status: 'Planning', budget: 120000000, spent: 5000000, progress: 5, createdAt: new Date() },
+    { name: "Suburb Complex", description: "Residential complex with 5 towers.", location: "Bengaluru, KA", siteEngineer: "Sanjay Sharma", entryGuard: "Rajesh Gupta", status: 'Completed', budget: 80000000, spent: 78000000, progress: 100, createdAt: new Date() },
 ];
 
 const sampleMaterials = [
@@ -91,6 +91,16 @@ const sampleLeads = [
     { name: "Amit Patel", email: "amit.patel@email.com", phone: "+919988776655", status: "Qualified", assignedTo: "Anjali Sharma", requirements: "Wants to book a 2BHK immediately", createdAt: serverTimestamp() },
     { name: "Sunita Reddy", email: "sunita.reddy@email.com", phone: "+919654321098", status: "Lost", assignedTo: "Rohan Kumar", requirements: "Budget constraints", createdAt: serverTimestamp() }
 ];
+
+const sampleProperties = [
+    { unitNumber: "A-101", project: "Suburb Complex", type: "2BHK", size: 1200, status: 'Sold', price: 7500000 },
+    { unitNumber: "A-102", project: "Suburb Complex", type: "3BHK", size: 1600, status: 'Sold', price: 9500000 },
+    { unitNumber: "B-503", project: "Suburb Complex", type: "2BHK", size: 1250, status: 'Sold', price: 7800000 },
+    { unitNumber: "1401", project: "Downtown Tower", type: "Office", size: 2500, status: 'Available', price: 25000000 },
+    { unitNumber: "1402", project: "Downtown Tower", type: "Office", size: 3000, status: 'Booked', price: 30000000 },
+    { unitNumber: "1501", project: "Downtown Tower", type: "Retail", size: 1800, status: 'Available', price: 45000000 },
+];
+
 
 const sampleFiles = [
     { name: "Architectural-Plans-Rev2.pdf", type: "Document", uploadedBy: "Owner", role: "Owner", date: "2024-07-20", size: "12.5 MB", projectId: "" },
@@ -199,6 +209,14 @@ export default function Dashboard() {
             const snap = await getDocs(q);
             if (snap.empty) {
                 await addDoc(collection(db, "leads"), lead);
+                seededCount++;
+            }
+        }
+        
+        const propertyDocs = await getDocs(collection(db, "properties"));
+        if (propertyDocs.empty) {
+            for (const property of sampleProperties) {
+                await addDoc(collection(db, "properties"), property);
                 seededCount++;
             }
         }
@@ -431,5 +449,3 @@ export default function Dashboard() {
     </>
   );
 }
-
-    

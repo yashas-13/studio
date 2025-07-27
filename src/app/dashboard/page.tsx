@@ -103,6 +103,12 @@ const sampleProperties = [
     { unitNumber: "1502", project: "Downtown Tower", type: "Retail", size: 2200, status: 'Sold', price: 55000000 },
 ];
 
+const sampleTowers = [
+    { name: "Tower A", floors: 20, unitsPerFloor: 4, projectId: "" },
+    { name: "Tower B", floors: 25, unitsPerFloor: 4, projectId: "" },
+    { name: "Commercial Block", floors: 10, unitsPerFloor: 2, projectId: "" },
+];
+
 
 const sampleFiles = [
     { name: "Architectural-Plans-Rev2.pdf", type: "Document", uploadedBy: "Owner", role: "Owner", date: "2024-07-20", size: "12.5 MB", projectId: "" },
@@ -198,7 +204,6 @@ export default function Dashboard() {
             const q = query(collection(db, "files"), where("name", "==", file.name));
             const snap = await getDocs(q);
             if (snap.empty) {
-                // Assign a random project ID for demonstration
                 const projectIds = Object.values(projectNameToId);
                 const randomProjectId = projectIds[Math.floor(Math.random() * projectIds.length)];
                 await addDoc(collection(db, "files"), {...file, projectId: randomProjectId});
@@ -219,6 +224,16 @@ export default function Dashboard() {
         if (propertyDocs.empty) {
             for (const property of sampleProperties) {
                 await addDoc(collection(db, "properties"), property);
+                seededCount++;
+            }
+        }
+
+        const towerDocs = await getDocs(collection(db, "towers"));
+        if (towerDocs.empty) {
+            for (const tower of sampleTowers) {
+                const projectIds = Object.values(projectNameToId);
+                const randomProjectId = projectIds[Math.floor(Math.random() * projectIds.length)];
+                await addDoc(collection(db, "towers"), {...tower, projectId: randomProjectId});
                 seededCount++;
             }
         }

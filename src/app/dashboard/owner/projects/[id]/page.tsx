@@ -15,6 +15,7 @@ import {
   ListTodo,
   Construction,
   FileArchive,
+  Building,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -153,6 +154,11 @@ export default function ProjectDetailsPage() {
                     <CardDescription>Quick links to project resources.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
+                    <Button asChild variant="outline" className="w-full justify-start gap-2">
+                        <Link href={`/dashboard/owner/projects/${project.id}/towers`}>
+                            <Building /> Manage Towers
+                        </Link>
+                    </Button>
                     <Button asChild variant="outline" className="w-full justify-start gap-2">
                         <Link href={`/dashboard/owner/projects/${project.id}/tasks`}>
                             <ListTodo /> Task List

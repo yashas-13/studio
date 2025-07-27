@@ -67,7 +67,9 @@ export default function LeadActions({ lead }: LeadActionsProps) {
         try {
             const q = query(collection(db, "properties"), where("status", "==", "Available"));
             const snapshot = await getDocs(q);
-            const inventoryData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Property[];
+            const inventoryData = snapshot.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(p => p.projectId) as Property[];
             
             const result = await recommendProperties({
                 requirements: lead.requirements,

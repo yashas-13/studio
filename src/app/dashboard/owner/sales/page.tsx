@@ -16,56 +16,70 @@ interface SalesRep {
     email: string;
     leads: number;
     closed: number;
-    revenue: number; // Placeholder for now
+    revenue: number;
+}
+
+interface RawSalesRep {
+    id: string;
+    name: string;
+    email: string;
 }
 
 export default function SalesAnalyticsPage() {
-    const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
+    const [rawSalesReps, setRawSalesReps] = useState<RawSalesRep[]>([]);
     const [leads, setLeads] = useState<Lead[]>([]);
+    const [aggregatedReps, setAggregatedReps] = useState<SalesRep[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Effect for fetching leads
     useEffect(() => {
-        // Fetch all leads
         const leadsUnsub = onSnapshot(collection(db, "leads"), (snapshot) => {
             const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
             setLeads(leadsData);
+            setLoading(false);
         });
+        return () => leadsUnsub();
+    }, []);
 
-        // Fetch all sales reps and aggregate lead data
+    // Effect for fetching sales reps
+    useEffect(() => {
         const usersQuery = query(collection(db, "users"), where("role", "==", "salesrep"));
         const repsUnsub = onSnapshot(usersQuery, (snapshot) => {
             const repsData = snapshot.docs.map(doc => ({
                 id: doc.id,
                 name: doc.data().name,
                 email: doc.data().email,
-                leads: 0,
-                closed: 0,
-                revenue: 0 // Placeholder
-            })) as SalesRep[];
-
-            // This part would be better done on a backend, but for client-side it works
-            if (leads.length > 0) {
-                repsData.forEach(rep => {
-                    const assignedLeads = leads.filter(lead => lead.assignedTo === rep.name);
-                    rep.leads = assignedLeads.length;
-                    rep.closed = assignedLeads.filter(lead => lead.status === 'Qualified').length; // Assuming qualified = closed for demo
-                    rep.revenue = rep.closed * 750000; // Placeholder calculation
-                });
-                setSalesReps(repsData);
-            }
-             setLoading(false);
+            })) as RawSalesRep[];
+            setRawSalesReps(repsData);
+            setLoading(false);
         });
-
-        return () => {
-            leadsUnsub();
-            repsUnsub();
+        return () => repsUnsub();
+    }, []);
+    
+    // Effect for aggregating data when either leads or rawReps change
+    useEffect(() => {
+        if (leads.length > 0 && rawSalesReps.length > 0) {
+            const repsData = rawSalesReps.map(rep => {
+                const assignedLeads = leads.filter(lead => lead.assignedTo === rep.name);
+                const closedLeads = assignedLeads.filter(lead => lead.status === 'Qualified'); // Assuming qualified = closed for demo
+                return {
+                    ...rep,
+                    leads: assignedLeads.length,
+                    closed: closedLeads.length, 
+                    revenue: closedLeads.length * 750000, // Placeholder calculation
+                };
+            });
+            setAggregatedReps(repsData);
+        } else if (rawSalesReps.length > 0) {
+            // Handle case where there are reps but no leads yet
+            setAggregatedReps(rawSalesReps.map(r => ({ ...r, leads: 0, closed: 0, revenue: 0 })));
         }
-    }, [leads]);
+    }, [leads, rawSalesReps]);
 
 
-    const totalLeads = salesReps.reduce((acc, rep) => acc + rep.leads, 0);
-    const totalClosed = salesReps.reduce((acc, rep) => acc + rep.closed, 0);
-    const totalRevenue = salesReps.reduce((acc, rep) => acc + rep.revenue, 0);
+    const totalLeads = aggregatedReps.reduce((acc, rep) => acc + rep.leads, 0);
+    const totalClosed = aggregatedReps.reduce((acc, rep) => acc + rep.closed, 0);
+    const totalRevenue = aggregatedReps.reduce((acc, rep) => acc + rep.revenue, 0);
     const conversionRate = totalLeads > 0 ? (totalClosed / totalLeads) * 100 : 0;
 
     return (
@@ -111,7 +125,7 @@ export default function SalesAnalyticsPage() {
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{salesReps.length}</div>
+                        <div className="text-2xl font-bold">{rawSalesReps.length}</div>
                         <p className="text-xs text-muted-foreground">Representatives</p>
                     </CardContent>
                 </Card>
@@ -140,7 +154,7 @@ export default function SalesAnalyticsPage() {
                                     <TableCell colSpan={4} className="h-24 text-center">Loading performance data...</TableCell>
                                 </TableRow>
                             ) : (
-                                salesReps.map(rep => (
+                                aggregatedReps.map(rep => (
                                     <TableRow key={rep.email}>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
@@ -167,5 +181,7 @@ export default function SalesAnalyticsPage() {
         </div>
     );
 }
+
+    
 
     

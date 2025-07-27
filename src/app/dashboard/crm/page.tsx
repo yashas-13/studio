@@ -201,7 +201,7 @@ export default function CrmPage() {
               </TableHeader>
               <TableBody>
                 {leads.map((lead) => (
-                  <TableRow key={lead.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => {/* Placeholder for navigation */}}>
+                  <TableRow key={lead.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => router.push(`/dashboard/crm/${lead.id}`)}>
                     <TableCell className="font-medium">{lead.name}</TableCell>
                     <TableCell>{lead.email}</TableCell>
                     <TableCell>{lead.phone || 'N/A'}</TableCell>
@@ -216,7 +216,7 @@ export default function CrmPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/dashboard/crm/${lead.id}`)}>View Details</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDeleteLead(lead.id)} className="text-destructive">Delete</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -266,3 +266,5 @@ export default function CrmPage() {
       </Dialog>
     </>
   );
+
+    

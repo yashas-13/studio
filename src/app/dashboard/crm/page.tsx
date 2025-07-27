@@ -21,6 +21,7 @@ import { useEffect, useState, useMemo } from "react";
 import { db, collection, addDoc, onSnapshot, doc, deleteDoc, serverTimestamp, query, orderBy } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { LeadPipeline } from "@/components/lead-pipeline";
+import { Textarea } from "@/components/ui/textarea";
 
 export type LeadStatus = 'New' | 'Contacted' | 'Qualified' | 'Lost';
 export interface Lead {
@@ -31,6 +32,7 @@ export interface Lead {
   status: LeadStatus;
   assignedTo: string;
   createdAt: any;
+  requirements: string;
 }
 
 export default function CrmPage() {
@@ -40,6 +42,7 @@ export default function CrmPage() {
     name: "",
     email: "",
     phone: "",
+    requirements: "",
   });
   
   const { toast } = useToast();
@@ -75,7 +78,7 @@ export default function CrmPage() {
       });
       toast({ title: "Success", description: "New lead added." });
       setIsDialogOpen(false);
-      setNewLead({ name: "", email: "", phone: "" });
+      setNewLead({ name: "", email: "", phone: "", requirements: "" });
     } catch (error) {
       console.error("Error adding lead: ", error);
       toast({ title: "Error", description: "Could not add lead.", variant: "destructive" });
@@ -169,6 +172,10 @@ export default function CrmPage() {
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="phone" className="text-right">Phone</Label>
               <Input id="phone" value={newLead.phone} onChange={(e) => handleInputChange('phone', e.target.value)} className="col-span-3" placeholder="e.g., +1 234 567 890" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="requirements" className="text-right">Requirements</Label>
+              <Textarea id="requirements" value={newLead.requirements} onChange={(e) => handleInputChange('requirements', e.target.value)} className="col-span-3" placeholder="e.g., 3BHK, corner unit, high floor..." />
             </div>
           </div>
           <DialogFooter>

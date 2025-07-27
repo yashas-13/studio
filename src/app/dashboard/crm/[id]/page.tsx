@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Mail, Phone, User, Activity, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Activity, TrendingUp, MessageSquare, Briefcase, PhoneCall } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { type LeadStatus } from '../page';
@@ -23,7 +23,22 @@ interface Lead {
   phone: string;
   status: LeadStatus;
   assignedTo: string;
+  requirements: string;
 }
+
+interface ActivityItem {
+    type: 'Status Change' | 'Note' | 'Call' | 'Meeting';
+    content: string;
+    date: string;
+    user: string;
+}
+
+const sampleActivities: ActivityItem[] = [
+    { type: 'Status Change', content: 'Status changed to Contacted.', date: '2 days ago', user: 'Anjali Sharma' },
+    { type: 'Call', content: 'Initial call, discussed project details. Client is interested in 3BHK options.', date: '2 days ago', user: 'Anjali Sharma' },
+    { type: 'Meeting', content: 'Scheduled a site visit for this weekend.', date: '1 day ago', user: 'Anjali Sharma' },
+];
+
 
 export default function LeadProfilePage() {
   const params = useParams();
@@ -67,6 +82,16 @@ export default function LeadProfilePage() {
     } catch (error) {
         console.error("Error updating status: ", error);
         toast({ title: "Error", description: "Could not update lead status.", variant: "destructive" });
+    }
+  }
+  
+  const getActivityIcon = (type: ActivityItem['type']) => {
+    switch (type) {
+        case 'Status Change': return <Briefcase className="h-4 w-4" />;
+        case 'Note': return <MessageSquare className="h-4 w-4" />;
+        case 'Call': return <PhoneCall className="h-4 w-4" />;
+        case 'Meeting': return <Users className="h-4 w-4" />;
+        default: return <Activity className="h-4 w-4" />;
     }
   }
 
@@ -138,20 +163,34 @@ export default function LeadProfilePage() {
             <div className="grid gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Performance Metrics</CardTitle>
-                        <CardDescription>Overall engagement and conversion metrics for this lead.</CardDescription>
+                        <CardTitle>Lead Requirements</CardTitle>
+                        <CardDescription>Specific needs and preferences of the lead.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground text-center">Performance metrics coming soon.</p>
+                        <p className="text-muted-foreground text-sm">
+                            {lead.requirements || "No specific requirements have been logged."}
+                        </p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
+                        <CardTitle>Follow-Up History</CardTitle>
                         <CardDescription>A log of all interactions with this lead.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <p className="text-muted-foreground text-center">Activity log coming soon.</p>
+                         <div className="space-y-6">
+                            {sampleActivities.map((activity, index) => (
+                                <div key={index} className="flex gap-4">
+                                    <div className="p-3 rounded-full bg-muted text-muted-foreground h-fit">
+                                        {getActivityIcon(activity.type)}
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-sm">{activity.content}</p>
+                                        <p className="text-xs text-muted-foreground">{activity.user} • {activity.date}</p>
+                                    </div>
+                                </div>
+                            ))}
+                         </div>
                     </CardContent>
                 </Card>
             </div>

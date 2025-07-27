@@ -3,46 +3,23 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp, query, orderBy, getDocs, where } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Mail, Phone, User, Activity, Briefcase, MessageSquare, PhoneCall, Users, Sparkles, Loader2, MoveRight, Building, Home } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { type LeadStatus, type Lead } from '../page';
-import { Textarea } from '@/components/ui/textarea';
-import { analyzeLead, type AnalyzeLeadOutput } from '@/ai/flows/lead-analysis';
-import { type Property } from '@/lib/types';
-import Link from 'next/link';
+import { type Lead } from '../page';
+import LeadProfileHeader from '@/components/lead-profile-header';
+import LeadDetailsCard from '@/components/lead-details-card';
+import LeadRequirementsCard from '@/components/lead-requirements-card';
+import LeadActions from '@/components/lead-actions';
+import LeadActivity from '@/components/lead-activity';
 
-
-interface ActivityItem {
-    id: string;
-    type: 'Status Change' | 'Note' | 'Call' | 'Meeting';
-    content: string;
-    date: any;
-    user: string;
-}
 
 export default function LeadProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
   const [lead, setLead] = useState<Lead | null>(null);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [newNote, setNewNote] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalyzeLeadOutput | null>(null);
-  const [availableInventory, setAvailableInventory] = useState<Property[] | null>(null);
-  const [loadingInventory, setLoadingInventory] = useState(false);
-
-  const { toast } = useToast();
 
   useEffect(() => {
     if (typeof id !== 'string') return;
@@ -51,131 +28,16 @@ export default function LeadProfilePage() {
         if (doc.exists()) {
           const leadData = { id: doc.id, ...doc.data() } as Lead;
           setLead(leadData);
-          if (leadData.projectId) {
-            fetchProjectInventory(leadData.projectId);
-          }
         } else {
           router.push('/dashboard/crm');
         }
         setLoading(false);
       });
 
-    const activityQuery = query(collection(db, 'leads', id, 'activity'), orderBy('date', 'desc'));
-    const activityUnsub = onSnapshot(activityQuery, (snapshot) => {
-        const activitiesData: ActivityItem[] = [];
-        snapshot.forEach(doc => {
-            activitiesData.push({ id: doc.id, ...doc.data() } as ActivityItem);
-        });
-        setActivities(activitiesData);
-    });
-
     return () => {
         leadUnsub();
-        activityUnsub();
     };
   }, [id, router]);
-
-  const fetchProjectInventory = async (projectId: string) => {
-    setLoadingInventory(true);
-    const q = query(collection(db, "properties"), where("projectId", "==", projectId), where("status", "==", "Available"));
-    const snapshot = await getDocs(q);
-    const inventoryData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Property[];
-    setAvailableInventory(inventoryData);
-    setLoadingInventory(false);
-  }
-
-  const getStatusVariant = (status: Lead['status']): "secondary" | "outline" | "default" | "destructive" => {
-    switch (status) {
-      case 'New': return 'default';
-      case 'Contacted': return 'outline';
-      case 'Qualified': return 'secondary';
-      case 'Lost': return 'destructive';
-      default: return 'default';
-    }
-  }
-
-  const handleStatusChange = async (newStatus: LeadStatus) => {
-    if (!lead) return;
-    try {
-        const leadRef = doc(db, 'leads', lead.id);
-        await updateDoc(leadRef, { status: newStatus });
-        
-        // Log status change activity
-        await addDoc(collection(db, 'leads', lead.id, 'activity'), {
-            type: 'Status Change',
-            content: `Status changed to ${newStatus}.`,
-            date: serverTimestamp(),
-            user: 'Anjali Sharma' // Placeholder user
-        });
-
-        toast({ title: "Status Updated", description: `${lead.name}'s status changed to ${newStatus}.`});
-    } catch (error) {
-        console.error("Error updating status: ", error);
-        toast({ title: "Error", description: "Could not update lead status.", variant: "destructive" });
-    }
-  }
-
-  const handleAddNote = async () => {
-      if (!newNote.trim() || !lead) return;
-      setIsSubmittingNote(true);
-      try {
-        await addDoc(collection(db, 'leads', lead.id, 'activity'), {
-            type: 'Note',
-            content: newNote,
-            date: serverTimestamp(),
-            user: 'Anjali Sharma' // Placeholder user
-        });
-        setNewNote("");
-        toast({ title: "Note added successfully!" });
-      } catch (error) {
-        console.error("Error adding note: ", error);
-        toast({ title: "Error", description: "Could not add note.", variant: "destructive" });
-      } finally {
-        setIsSubmittingNote(false);
-      }
-  };
-  
-  const handleAnalyzeLead = async () => {
-    if (!lead) return;
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
-    try {
-        const activityHistory = activities.map(a => `${a.user} (${a.type} at ${formatTimestamp(a.date)}): ${a.content}`).join('\n');
-        const result = await analyzeLead({
-            requirements: lead.requirements,
-            activityHistory: activityHistory
-        });
-        setAnalysisResult(result);
-    } catch (error) {
-        console.error("Error analyzing lead: ", error);
-        toast({ title: "Error", description: "Could not get AI insights.", variant: "destructive" });
-    } finally {
-        setIsAnalyzing(false);
-    }
-  };
-  
-  const getActivityIcon = (type: ActivityItem['type']) => {
-    switch (type) {
-        case 'Status Change': return <Briefcase className="h-4 w-4" />;
-        case 'Note': return <MessageSquare className="h-4 w-4" />;
-        case 'Call': return <PhoneCall className="h-4 w-4" />;
-        case 'Meeting': return <Users className="h-4 w-4" />;
-        default: return <Activity className="h-4 w-4" />;
-    }
-  }
-  
-  const formatTimestamp = (timestamp: any) => {
-    if (!timestamp) return 'N/A';
-    const date = timestamp.toDate();
-    const now = new Date();
-    const diff = Math.abs(now.getTime() - date.getTime());
-    const diffHours = Math.floor(diff / (1000 * 60 * 60));
-    
-    if (diffHours < 1) return `${Math.floor(diff / (1000 * 60))}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return date.toLocaleDateString();
-  }
-
 
   if (loading) {
     return <LeadProfileSkeleton />;
@@ -187,197 +49,16 @@ export default function LeadProfilePage() {
 
   return (
     <div className="flex flex-col gap-6">
-       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft />
-        </Button>
-        <div>
-            <h1 className="text-2xl font-semibold">Lead Profile</h1>
-            <p className="text-sm text-muted-foreground">Detailed view of customer information and activity.</p>
-        </div>
-      </div>
+       <LeadProfileHeader />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-6">
-             <Card>
-                <CardContent className="pt-6">
-                    <div className="flex flex-col items-center text-center">
-                         <Avatar className="h-24 w-24 mb-4">
-                            <AvatarImage src={`https://i.pravatar.cc/150?u=${lead.email}`} alt={lead.name} />
-                            <AvatarFallback>{lead.name.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <h2 className="text-xl font-semibold">{lead.name}</h2>
-                        <div className="mt-2">
-                             <Select value={lead.status} onValueChange={handleStatusChange}>
-                                <SelectTrigger className="w-[120px]">
-                                    <SelectValue>
-                                         <Badge className="capitalize" variant={getStatusVariant(lead.status)}>{lead.status}</Badge>
-                                    </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="New">New</SelectItem>
-                                    <SelectItem value="Contacted">Contacted</SelectItem>
-                                    <SelectItem value="Qualified">Qualified</SelectItem>
-                                    <SelectItem value="Lost">Lost</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                    </div>
-                    <div className="mt-6 space-y-3 text-sm">
-                        <div className="flex items-center gap-3">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">{lead.email}</span>
-                        </div>
-                         <div className="flex items-center gap-3">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">{lead.phone || "Not provided"}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Assigned to: {lead.assignedTo}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Building className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Project: {lead.projectName || "Not specified"}</span>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle>Lead Requirements</CardTitle>
-                    <CardDescription>Specific needs and preferences.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground text-sm">
-                        {lead.requirements || "No specific requirements have been logged."}
-                    </p>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle>AI Insights</CardTitle>
-                    <CardDescription>Get AI-powered analysis of this lead.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={handleAnalyzeLead} disabled={isAnalyzing} className="w-full">
-                        {isAnalyzing ? <Loader2 className="animate-spin mr-2"/> : <Sparkles className="mr-2" />}
-                        Generate Insights
-                    </Button>
-                    {isAnalyzing && (
-                        <div className="flex items-center justify-center p-8">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    )}
-                    {analysisResult && (
-                        <div className="space-y-6 pt-4">
-                            <div>
-                                <h3 className="font-semibold text-md mb-2">Summary</h3>
-                                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">{analysisResult.summary}</p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-md mb-2">Key Points</h3>
-                                <ul className="space-y-2">
-                                    {analysisResult.keyPoints.map((point, i) => (
-                                    <li key={i} className="flex items-start gap-2">
-                                        <MoveRight className="h-4 w-4 mt-1 text-primary" />
-                                        <span className="text-sm text-muted-foreground">{point}</span>
-                                    </li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-md mb-2">Next Actions</h3>
-                                <ul className="space-y-2">
-                                    {analysisResult.nextActions.map((action, i) => (
-                                    <li key={i} className="flex items-start gap-2">
-                                        <MoveRight className="h-4 w-4 mt-1 text-primary" />
-                                        <span className="text-sm text-muted-foreground">{action}</span>
-                                    </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            <LeadDetailsCard lead={lead} />
+            <LeadRequirementsCard lead={lead} />
         </div>
         <div className="lg:col-span-2 space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Log an Activity</CardTitle>
-                    <CardDescription>Add a note, call log, or meeting summary.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid w-full gap-2">
-                        <Textarea placeholder="Type your note here..." value={newNote} onChange={(e) => setNewNote(e.target.value)} />
-                        <Button onClick={handleAddNote} disabled={isSubmittingNote || !newNote.trim()}>
-                            {isSubmittingNote ? 'Adding...' : 'Add Note'}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Interested Project & Inventory</CardTitle>
-                    <CardDescription>Available units in {lead.projectName || 'the selected project'}.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {loadingInventory && (
-                        <div className="flex items-center justify-center p-8">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    )}
-                    {availableInventory && !loadingInventory && (
-                        <div className="space-y-4">
-                            {availableInventory.length > 0 ? (
-                                availableInventory.map(prop => (
-                                    <Link key={prop.id} href={`/dashboard/inventory/${prop.id}`}>
-                                        <div className="p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer">
-                                            <div className="font-semibold">{prop.unitNumber} in {prop.tower || prop.project}</div>
-                                            <div className="text-sm text-muted-foreground flex justify-between">
-                                                <span>{prop.type} / {prop.size} sqft</span>
-                                                <span className="font-medium text-foreground">₹{prop.price.toLocaleString('en-IN')}</span>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                ))
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center p-4">No available units found for this project.</p>
-                            )}
-                        </div>
-                    )}
-                    {!lead.projectId && !loadingInventory && (
-                        <p className="text-sm text-muted-foreground text-center p-4">This lead is not yet associated with a project.</p>
-                    )}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Follow-Up History</CardTitle>
-                    <CardDescription>A log of all interactions with this lead.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <div className="space-y-6">
-                        {activities.length > 0 ? activities.map((activity) => (
-                            <div key={activity.id} className="flex gap-4">
-                                <div className="p-3 rounded-full bg-muted text-muted-foreground h-fit">
-                                    {getActivityIcon(activity.type)}
-                                </div>
-                                <div>
-                                    <p className="font-medium text-sm">{activity.content}</p>
-                                    <p className="text-xs text-muted-foreground">{activity.user} • {formatTimestamp(activity.date)}</p>
-                                </div>
-                            </div>
-                        )) : (
-                            <p className="text-sm text-muted-foreground text-center">No activities logged yet.</p>
-                        )}
-                     </div>
-                </CardContent>
-            </Card>
+            <LeadActions lead={lead} />
+            <LeadActivity leadId={lead.id} />
         </div>
       </div>
     </div>
@@ -437,4 +118,14 @@ function LeadProfileSkeleton() {
             </div>
         </div>
     )
+}
+
+function Card({ children }: { children: React.ReactNode }) {
+    return <div className="rounded-lg border bg-card text-card-foreground shadow-sm">{children}</div>
+}
+function CardHeader({ children }: { children: React.ReactNode }) {
+    return <div className="flex flex-col space-y-1.5 p-6">{children}</div>
+}
+function CardContent({ children }: { children: React.ReactNode }) {
+    return <div className="p-6 pt-0">{children}</div>
 }

@@ -1,0 +1,46 @@
+
+'use server';
+
+import { db } from "@/lib/firebase";
+import { doc, updateDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { revalidatePath } from "next/cache";
+import { type Lead, type LeadStatus } from "./page";
+
+export async function updateLeadStatus(leadId: string, newStatus: LeadStatus) {
+    const leadRef = doc(db, 'leads', leadId);
+    await updateDoc(leadRef, { status: newStatus });
+    
+    await addDoc(collection(db, 'leads', leadId, 'activity'), {
+        type: 'Status Change',
+        content: `Status changed to ${newStatus}.`,
+        date: serverTimestamp(),
+        user: 'Anjali Sharma' // Placeholder user
+    });
+    revalidatePath(`/dashboard/crm/${leadId}`);
+}
+
+export async function updateLeadDetails(leadId: string, data: Partial<Lead>) {
+    const leadRef = doc(db, 'leads', leadId);
+    await updateDoc(leadRef, data);
+    
+    const changes = Object.entries(data).map(([key, value]) => `${key} was updated`).join(', ');
+
+    await addDoc(collection(db, 'leads', leadId, 'activity'), {
+        type: 'Note',
+        content: `Lead details updated: ${changes}.`,
+        date: serverTimestamp(),
+        user: 'Anjali Sharma' // Placeholder user
+    });
+    revalidatePath(`/dashboard/crm/${leadId}`);
+}
+
+export async function addLeadNote(leadId: string, note: string) {
+    if (!note.trim()) return;
+    await addDoc(collection(db, 'leads', leadId, 'activity'), {
+        type: 'Note',
+        content: note,
+        date: serverTimestamp(),
+        user: 'Anjali Sharma' // Placeholder user
+    });
+    revalidatePath(`/dashboard/crm/${leadId}`);
+}

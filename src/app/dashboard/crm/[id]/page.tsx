@@ -294,8 +294,8 @@ export default function LeadProfilePage() {
         <div className="lg:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
-                    <DialogTitle>Log an Activity</DialogTitle>
-                    <DialogDescription>Add a note, call log, or meeting summary.</DialogDescription>
+                    <CardTitle>Log an Activity</CardTitle>
+                    <CardDescription>Add a note, call log, or meeting summary.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid w-full gap-2">

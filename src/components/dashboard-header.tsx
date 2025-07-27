@@ -49,7 +49,8 @@ export function DashboardHeader({ navLinks }: DashboardHeaderProps) {
           </Link>
       </div>
 
-       <nav className="hidden md:flex items-center gap-6 text-sm font-medium ml-6">
+       {navLinks && navLinks.length > 0 && (
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium ml-6">
             {navLinks.map((link) => (
                 <Link
                 key={link.href}
@@ -60,6 +61,7 @@ export function DashboardHeader({ navLinks }: DashboardHeaderProps) {
                 </Link>
             ))}
         </nav>
+       )}
 
 
       <div className="ml-auto flex items-center gap-4">

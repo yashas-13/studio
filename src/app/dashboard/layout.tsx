@@ -54,7 +54,7 @@ export default function DashboardLayout({
     { href: "/dashboard/owner/projects", icon: GanttChartSquare, label: "Projects" },
     { href: "/dashboard/users", icon: Users, label: "Users" },
     { href: "/dashboard/file-sharing", icon: FileArchive, label: "Files" },
-    { href: "/dashboard/crm", icon: Briefcase, label: "CRM" },
+    { href: "/dashboard/owner/sales", icon: Briefcase, label: "Sales" },
   ];
 
   const siteManagerNavLinks = [
@@ -91,7 +91,7 @@ export default function DashboardLayout({
           {children}
         </main>
       
-      {isClient && (
+      {isClient && navLinks.length > 0 && (
         <nav className="fixed bottom-0 left-0 right-0 bg-card border-t z-50 md:hidden">
             <div className="flex h-16 items-center justify-around">
                 {navLinks.map((link) => (

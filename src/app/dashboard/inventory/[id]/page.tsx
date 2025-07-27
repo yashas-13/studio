@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { type Property } from '@/lib/types';
 import {
@@ -15,6 +15,7 @@ import {
   MapPin,
   Ruler,
   Tag,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +23,10 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { type Lead } from '../../crm/page';
+import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { BlockUnitDialog } from '@/components/block-unit-dialog';
 
 const sampleImageUrls = [
     'https://placehold.co/800x600.png?text=Living+Room',
@@ -33,9 +38,12 @@ const sampleImageUrls = [
 export default function PropertyDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const { id } = params;
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
+  const [qualifiedLeads, setQualifiedLeads] = useState<Lead[]>([]);
 
   useEffect(() => {
     if (typeof id === 'string') {
@@ -50,6 +58,16 @@ export default function PropertyDetailsPage() {
       return () => unsub();
     }
   }, [id, router]);
+
+  useEffect(() => {
+    // Fetch qualified leads for the booking dialog
+    const q = query(collection(db, "leads"), where("status", "==", "Qualified"));
+    const unsub = onSnapshot(q, (snapshot) => {
+        const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
+        setQualifiedLeads(leadsData);
+    });
+    return () => unsub();
+  }, []);
   
   const getStatusVariant = (status: Property['status']) => {
     switch (status) {
@@ -60,6 +78,24 @@ export default function PropertyDetailsPage() {
     }
   };
 
+  const handleBlockUnitConfirm = async (leadId: string, leadName: string) => {
+    if (!property || typeof id !== 'string') return;
+    try {
+        const propertyRef = doc(db, 'properties', id);
+        await updateDoc(propertyRef, {
+            status: "Booked",
+            bookedByLeadId: leadId,
+            bookedByLeadName: leadName,
+        });
+        toast({ title: "Unit Blocked", description: `Unit ${property.unitNumber} has been booked for ${leadName}.`});
+        setIsBlockDialogOpen(false);
+    } catch (error) {
+        console.error("Error blocking unit: ", error);
+        toast({ title: "Error", description: "Could not block the unit.", variant: "destructive"});
+    }
+  }
+
+
   if (loading) {
     return <PropertyDetailsSkeleton />;
   }
@@ -69,6 +105,7 @@ export default function PropertyDetailsPage() {
   }
 
   return (
+    <>
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
@@ -146,7 +183,19 @@ export default function PropertyDetailsPage() {
                     <CardTitle>Actions</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Button className="w-full" disabled={property.status !== 'Available'}>
+                    {property.status === 'Booked' && property.bookedByLeadName && (
+                        <div className="text-sm text-center bg-muted p-3 rounded-md">
+                            <p className="text-muted-foreground">This unit is booked by:</p>
+                            <Link href={`/dashboard/crm/${property.bookedByLeadId}`}>
+                                <Button variant="link" className="font-semibold">{property.bookedByLeadName}</Button>
+                            </Link>
+                        </div>
+                    )}
+                    <Button 
+                        className="w-full" 
+                        disabled={property.status !== 'Available'}
+                        onClick={() => property.status === 'Available' && setIsBlockDialogOpen(true)}
+                    >
                         {property.status === 'Available' ? 'Block Unit' : `Unit is ${property.status}`}
                     </Button>
                 </CardContent>
@@ -154,6 +203,13 @@ export default function PropertyDetailsPage() {
         </div>
       </div>
     </div>
+    <BlockUnitDialog
+        isOpen={isBlockDialogOpen}
+        onOpenChange={setIsBlockDialogOpen}
+        leads={qualifiedLeads}
+        onBlockConfirm={handleBlockUnitConfirm}
+    />
+    </>
   );
 }
 

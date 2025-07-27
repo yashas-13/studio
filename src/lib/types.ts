@@ -14,5 +14,7 @@ export const PropertySchema = z.object({
   status: z.enum(['Available', 'Booked', 'Sold']),
   price: z.number(),
   photoUrl: z.string().optional(),
+  bookedByLeadId: z.string().optional(),
+  bookedByLeadName: z.string().optional(),
 });
 export type Property = z.infer<typeof PropertySchema>;

@@ -1,34 +1,25 @@
 
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DollarSign, Users, TrendingUp } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { type Lead } from "../../crm/page";
-
-interface SalesRep {
-    id: string;
-    name: string;
-    email: string;
-    leads: number;
-    closed: number;
-    revenue: number;
-}
+import { Skeleton } from "@/components/ui/skeleton";
+import SalesRepresentativeCard from "@/components/sales-representative-card";
 
 interface RawSalesRep {
     id: string;
     name: string;
     email: string;
+    role: string;
 }
 
 export default function SalesAnalyticsPage() {
-    const [rawSalesReps, setRawSalesReps] = useState<RawSalesRep[]>([]);
+    const [salesReps, setSalesReps] = useState<RawSalesRep[]>([]);
     const [leads, setLeads] = useState<Lead[]>([]);
-    const [aggregatedReps, setAggregatedReps] = useState<SalesRep[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -36,16 +27,17 @@ export default function SalesAnalyticsPage() {
         const repsUnsub = onSnapshot(usersQuery, (snapshot) => {
             const repsData = snapshot.docs.map(doc => ({
                 id: doc.id,
-                name: doc.data().name,
-                email: doc.data().email,
+                ...doc.data(),
             })) as RawSalesRep[];
-            setRawSalesReps(repsData);
-        }, () => setLoading(false));
+            setSalesReps(repsData);
+        });
 
-        const leadsUnsub = onSnapshot(collection(db, "leads"), (snapshot) => {
+        const qLeads = query(collection(db, "leads"), orderBy("createdAt", "desc"));
+        const leadsUnsub = onSnapshot(qLeads, (snapshot) => {
             const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
             setLeads(leadsData);
-        }, () => setLoading(false));
+            setLoading(false);
+        });
 
         return () => {
           repsUnsub();
@@ -53,34 +45,32 @@ export default function SalesAnalyticsPage() {
         };
     }, []);
 
-    useEffect(() => {
-        if (rawSalesReps.length > 0 && leads.length > 0) {
-            const repsData = rawSalesReps.map(rep => {
-                const assignedLeads = leads.filter(lead => lead.assignedTo === rep.name);
-                const closedLeads = assignedLeads.filter(lead => lead.status === 'Booked');
-                
-                const revenue = closedLeads.reduce((acc, lead) => acc + (lead.price || 0), 0);
+    const totalLeads = leads.length;
+    const totalBooked = leads.filter(l => l.status === 'Booked').length;
+    const totalRevenue = leads.filter(l => l.status === 'Booked').reduce((acc, lead) => acc + (lead.price || 0), 0);
+    const conversionRate = totalLeads > 0 ? (totalBooked / totalLeads) * 100 : 0;
 
-                return {
-                    ...rep,
-                    leads: assignedLeads.length,
-                    closed: closedLeads.length,
-                    revenue: revenue,
-                };
-            });
-            setAggregatedReps(repsData);
-            setLoading(false); 
-        } else if (!loading) { 
-             setAggregatedReps([]);
-             setLoading(false);
-        }
-    }, [leads, rawSalesReps, loading]);
-
-
-    const totalLeads = aggregatedReps.reduce((acc, rep) => acc + rep.leads, 0);
-    const totalClosed = aggregatedReps.reduce((acc, rep) => acc + rep.closed, 0);
-    const totalRevenue = aggregatedReps.reduce((acc, rep) => acc + rep.revenue, 0);
-    const conversionRate = totalLeads > 0 ? (totalClosed / totalLeads) * 100 : 0;
+    const renderSkeleton = () => (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+             {[...Array(3)].map((_, i) => (
+                <Card key={i}>
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                             <Skeleton className="h-12 w-12 rounded-full" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-5 w-32" />
+                                <Skeleton className="h-4 w-40" />
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </CardContent>
+                </Card>
+             ))}
+        </div>
+    );
 
     return (
         <div className="flex flex-col gap-6">
@@ -101,22 +91,22 @@ export default function SalesAnalyticsPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Leads</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">+{totalLeads}</div>
-                        <p className="text-xs text-muted-foreground">This quarter</p>
+                        <p className="text-xs text-muted-foreground">Across the team</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                        <CardTitle className="text-sm font-medium">Overall Conversion Rate</CardTitle>
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{conversionRate.toFixed(1)}%</div>
-                        <p className="text-xs text-muted-foreground">Leads to closed deals</p>
+                        <p className="text-xs text-muted-foreground">Leads to booked deals</p>
                     </CardContent>
                 </Card>
                  <Card>
@@ -125,7 +115,7 @@ export default function SalesAnalyticsPage() {
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{rawSalesReps.length}</div>
+                        <div className="text-2xl font-bold">{salesReps.length}</div>
                         <p className="text-xs text-muted-foreground">Representatives</p>
                     </CardContent>
                 </Card>
@@ -139,47 +129,14 @@ export default function SalesAnalyticsPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Representative</TableHead>
-                                <TableHead className="text-center">Leads</TableHead>
-                                <TableHead className="text-center">Closed Deals</TableHead>
-                                <TableHead className="text-right">Revenue Generated</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">Loading performance data...</TableCell>
-                                </TableRow>
-                            ) : aggregatedReps.length > 0 ? (
-                                aggregatedReps.map(rep => (
-                                    <TableRow key={rep.email}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar>
-                                                    <AvatarImage src={`https://i.pravatar.cc/40?u=${rep.email}`} alt={rep.name} />
-                                                    <AvatarFallback>{rep.name.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <div className="font-medium">{rep.name}</div>
-                                                    <div className="text-sm text-muted-foreground">{rep.email}</div>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center font-medium">{rep.leads}</TableCell>
-                                        <TableCell className="text-center font-medium">{rep.closed}</TableCell>
-                                        <TableCell className="text-right font-semibold">₹{rep.revenue.toLocaleString('en-IN')}</TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">No sales data to display.</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                    {loading ? renderSkeleton() : (
+                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                           {salesReps.map(rep => {
+                                const repLeads = leads.filter(lead => lead.assignedTo === rep.name);
+                                return <SalesRepresentativeCard key={rep.id} rep={rep} leads={repLeads} />
+                           })}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

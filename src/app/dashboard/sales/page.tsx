@@ -95,8 +95,6 @@ export default function SalesDashboardPage() {
             setProjects(projectsData);
         });
     
-        // This is a placeholder for a more sophisticated activity feed.
-        // For now, it mirrors recent lead creations.
         const qActivity = query(collection(db, "leads"), orderBy("createdAt", "desc"), limit(5));
         const unsubscribeActivity = onSnapshot(qActivity, (snapshot) => {
           const feedData = snapshot.docs.map(doc => ({
@@ -133,7 +131,6 @@ export default function SalesDashboardPage() {
       try {
         const selectedProject = projects.find(p => p.id === newLead.projectId);
         
-        // Append unit type to requirements text
         const finalRequirements = newLead.unitType 
             ? `${newLead.unitType}. ${newLead.requirements}` 
             : newLead.requirements;
@@ -146,7 +143,7 @@ export default function SalesDashboardPage() {
           projectId: newLead.projectId,
           projectName: selectedProject?.name,
           status: "Warm",
-          assignedTo: "Anjali Sharma", // Placeholder, ideally this would be the logged in user's name
+          assignedTo: "Anjali Sharma", 
           createdAt: serverTimestamp(),
         });
         toast({ title: "Success", description: "New lead added." });

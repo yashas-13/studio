@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DollarSign, Users, TrendingUp } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, where, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { type Lead } from "../../crm/page";
 
@@ -40,12 +40,12 @@ export default function SalesAnalyticsPage() {
                 email: doc.data().email,
             })) as RawSalesRep[];
             setRawSalesReps(repsData);
-        }, () => setLoading(false)); // Also set loading false on error or empty
+        }, () => setLoading(false));
 
         const leadsUnsub = onSnapshot(collection(db, "leads"), (snapshot) => {
             const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
             setLeads(leadsData);
-        }, () => setLoading(false)); // Also set loading false on error or empty
+        }, () => setLoading(false));
 
         return () => {
           repsUnsub();
@@ -54,12 +54,11 @@ export default function SalesAnalyticsPage() {
     }, []);
 
     useEffect(() => {
-        if (rawSalesReps.length > 0) {
+        if (rawSalesReps.length > 0 && leads.length > 0) {
             const repsData = rawSalesReps.map(rep => {
                 const assignedLeads = leads.filter(lead => lead.assignedTo === rep.name);
                 const closedLeads = assignedLeads.filter(lead => lead.status === 'Booked');
                 
-                // Calculate revenue from closed leads that have a price
                 const revenue = closedLeads.reduce((acc, lead) => acc + (lead.price || 0), 0);
 
                 return {
@@ -70,8 +69,8 @@ export default function SalesAnalyticsPage() {
                 };
             });
             setAggregatedReps(repsData);
-            setLoading(false); // Data is processed
-        } else if (!loading) { // If still loading, wait. If not loading and no reps, set empty.
+            setLoading(false); 
+        } else if (!loading) { 
              setAggregatedReps([]);
              setLoading(false);
         }

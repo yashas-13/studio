@@ -9,6 +9,7 @@ import {
   Users,
   TrendingUp,
   CheckCircle,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,14 +34,23 @@ import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Project } from "./projects/page";
-import { collection, onSnapshot, query } from "@/lib/firebase";
+import { collection, onSnapshot, query, orderBy, limit } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
+
+interface ActivityFeedItem {
+  id: string;
+  type: string;
+  user: string;
+  details: string;
+  timestamp: any;
+}
 
 export default function OwnerDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,8 +59,8 @@ export default function OwnerDashboard() {
       router.push('/login');
     }
     
-    const q = query(collection(db, "projects"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const qProjects = query(collection(db, "projects"));
+    const unsubscribeProjects = onSnapshot(qProjects, (querySnapshot) => {
       const projectsData: Project[] = [];
       querySnapshot.forEach((doc) => {
         projectsData.push({ id: doc.id, ...doc.data() } as Project);
@@ -66,14 +76,38 @@ export default function OwnerDashboard() {
       })
       setLoading(false);
     });
+    
+    const qActivity = query(collection(db, "activityFeed"), orderBy("timestamp", "desc"), limit(5));
+    const unsubscribeActivity = onSnapshot(qActivity, (querySnapshot) => {
+      const feedData: ActivityFeedItem[] = [];
+      querySnapshot.forEach((doc) => {
+        feedData.push({ id: doc.id, ...doc.data() } as ActivityFeedItem);
+      });
+      setActivityFeed(feedData);
+    });
 
-    return () => unsubscribe();
+    return () => {
+        unsubscribeProjects();
+        unsubscribeActivity();
+    };
   }, [router, toast]);
 
   const totalBudget = projects.reduce((acc, p) => acc + (p.budget || 0), 0);
   const totalSpent = projects.reduce((acc, p) => acc + (p.spent || 0), 0);
   const onTrackProjects = projects.filter(p => (p.spent || 0) <= (p.budget || 0)).length;
   const overallProgress = projects.length > 0 ? projects.reduce((acc, p) => acc + (p.progress || 0), 0) / projects.length : 0;
+  
+  const formatTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diff = Math.abs(now.getTime() - date.getTime());
+    const diffHours = Math.floor(diff / (1000 * 60 * 60));
+    
+    if (diffHours < 1) return `${Math.floor(diff / (1000 * 60))}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString();
+  }
   
   return (
     <>
@@ -192,62 +226,28 @@ export default function OwnerDashboard() {
         </Card>
         <Card>
             <CardHeader>
-              <CardTitle>Site Manager's Activity</CardTitle>
-              <CardDescription>Recent updates from the site.</CardDescription>
+              <CardTitle>Recent Site Activity</CardTitle>
+              <CardDescription>Real-time updates from all sites.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
-              <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Avatar" />
-                  <AvatarFallback>SA</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Site Admin</p>
-                  <p className="text-sm text-muted-foreground">
-                    Logged usage for Downtown Tower - Level 12.
-                  </p>
-                </div>
-                <div className="ml-auto text-sm text-muted-foreground">1h ago</div>
-              </div>
-              <div className="flex items-center gap-4">
-                 <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Avatar" />
-                  <AvatarFallback>SA</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Site Admin</p>
-                  <p className="text-sm text-muted-foreground">
-                    Received concrete delivery at North Bridge site.
-                  </p>
-                </div>
-                <div className="ml-auto text-sm text-muted-foreground">3h ago</div>
-              </div>
-              <div className="flex items-center gap-4">
-                 <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Avatar" />
-                  <AvatarFallback>SA</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Site Admin</p>
-                  <p className="text-sm text-muted-foreground">
-                    Updated timeline for Westgate Mall foundation.
-                  </p>
-                </div>
-                <div className="ml-auto text-sm text-muted-foreground">1d ago</div>
-              </div>
-               <div className="flex items-center gap-4">
-                 <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Avatar" />
-                  <AvatarFallback>SA</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Site Admin</p>
-                  <p className="text-sm text-muted-foreground">
-                    Resolved compliance issue on Suburb Complex.
-                  </p>
-                </div>
-                <div className="ml-auto text-sm text-muted-foreground">2d ago</div>
-              </div>
+                {activityFeed.length === 0 && !loading && (
+                    <p className="text-sm text-muted-foreground text-center">No recent activity.</p>
+                )}
+                {activityFeed.map(item => (
+                    <div className="flex items-center gap-4" key={item.id}>
+                        <Avatar className="hidden h-9 w-9 sm:flex">
+                        <AvatarImage src={`https://i.pravatar.cc/40?u=${item.user}`} alt="Avatar" />
+                        <AvatarFallback>{item.user.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="grid gap-1">
+                        <p className="text-sm font-medium leading-none">{item.user}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {item.details}
+                        </p>
+                        </div>
+                        <div className="ml-auto text-sm text-muted-foreground">{formatTimestamp(item.timestamp)}</div>
+                    </div>
+                ))}
             </CardContent>
           </Card>
       </div>

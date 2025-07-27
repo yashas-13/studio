@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { db, collection, addDoc, onSnapshot, doc, updateDoc, getDoc, query, orderBy } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, doc, updateDoc, getDoc, query, orderBy, serverTimestamp } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface UsageLog {
@@ -62,13 +62,19 @@ export function UsageClient() {
         materialsData.push({ id: doc.id, ...doc.data() } as Material);
       });
       setMaterials(materialsData);
+      
+      // If a project is already selected, refresh its materials list
+      if (newLog.project) {
+          const projectMaterials = materialsData.filter(m => m.project === newLog.project);
+          setFilteredMaterials(projectMaterials);
+      }
     });
 
     return () => {
       unsubscribeLogs();
       unsubscribeMaterials();
     };
-  }, []);
+  }, [newLog.project]);
 
   const handleProjectChange = (projectName: string) => {
     setNewLog(prev => ({ ...prev, project: projectName, materialId: "" }));
@@ -117,7 +123,7 @@ export function UsageClient() {
       });
 
       // Add usage log
-      await addDoc(collection(db, "usageLogs"), {
+      const usageLogPayload = {
         materialName: materialData.name,
         quantity: usedQuantity,
         unit: materialData.unit || '',
@@ -125,7 +131,17 @@ export function UsageClient() {
         area: newLog.area,
         notes: newLog.notes,
         date: new Date().toISOString(),
-        user: "S. Admin" // Placeholder user
+        user: "S. Manager" // Placeholder user
+      }
+      await addDoc(collection(db, "usageLogs"), usageLogPayload);
+      
+       // Add to activity feed for owner notification
+      const activityDetail = `${usedQuantity} ${materialData.unit || ''} of ${materialData.name} used at ${newLog.project} (${newLog.area}).`;
+      await addDoc(collection(db, "activityFeed"), {
+        type: 'MATERIAL_USAGE',
+        user: 'Site Manager',
+        details: activityDetail,
+        timestamp: serverTimestamp()
       });
       
       toast({ title: "Success", description: "Usage logged and inventory updated." });
@@ -207,11 +223,11 @@ export function UsageClient() {
                   <Label htmlFor="material-type">Material Type</Label>
                   <Select value={newLog.materialId} onValueChange={(value) => handleInputChange('materialId', value)} disabled={!newLog.project}>
                     <SelectTrigger id="material-type" aria-label="Select material">
-                      <SelectValue placeholder="Select material" />
+                      <SelectValue placeholder="Select from available stock" />
                     </SelectTrigger>
                     <SelectContent>
                       {filteredMaterials.map((material) => (
-                        <SelectItem key={material.id} value={material.id}>{material.name} ({material.quantity} {material.unit})</SelectItem>
+                        <SelectItem key={material.id} value={material.id}>{material.name} (Stock: {material.quantity} {material.unit})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -221,7 +237,7 @@ export function UsageClient() {
                   <Input id="quantity" type="number" placeholder="e.g., 15" value={newLog.quantity} onChange={(e) => handleInputChange('quantity', e.target.value)} />
                 </div>
                 <div className="grid gap-3">
-                  <Label htmlFor="project-area">Project Area</Label>
+                  <Label htmlFor="project-area">Project Area / Work Location</Label>
                   <Input id="project-area" type="text" placeholder="e.g., Level 12, West Wing" value={newLog.area} onChange={(e) => handleInputChange('area', e.target.value)} />
                 </div>
                 <div className="grid gap-3">

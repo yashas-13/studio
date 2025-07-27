@@ -47,7 +47,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useState } from "react";
-import { db, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, getDocs, updateDoc, getDoc, orderBy } from "@/lib/firebase";
+import { db, collection, addDoc, onSnapshot, doc, deleteDoc, query, where, getDocs, updateDoc, getDoc, orderBy, serverTimestamp } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface Material {
@@ -123,6 +123,8 @@ export default function MaterialsPage() {
       const q = query(collection(db, "materials"), where("name", "==", newMaterial.name), where("project", "==", newMaterial.project));
       const querySnapshot = await getDocs(q);
 
+      const activityDetail = `${quantity} ${newMaterial.unit} of ${newMaterial.name} received for project ${newMaterial.project}.`;
+      
       if (!querySnapshot.empty) {
         // Material exists, update stock
         const existingDoc = querySnapshot.docs[0];
@@ -151,6 +153,14 @@ export default function MaterialsPage() {
         });
         toast({ title: "Success", description: `${newMaterial.name} added to inventory.` });
       }
+      
+      // Add to activity feed for owner notification
+      await addDoc(collection(db, "activityFeed"), {
+        type: 'MATERIAL_ENTRY',
+        user: 'Entry Guard', // Assuming guard is logging this
+        details: activityDetail,
+        timestamp: serverTimestamp()
+      });
 
       setIsDialogOpen(false);
       setNewMaterial({ name: "", supplier: "", project: "", quantity: "", unit: "", invoice: null, photo: null });
@@ -310,5 +320,3 @@ export default function MaterialsPage() {
     </>
   );
 }
-
-    

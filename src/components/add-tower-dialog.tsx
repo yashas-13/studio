@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { db, collection, addDoc, updateDoc, doc } from "@/lib/firebase";
+import { db, collection, addDoc, updateDoc, doc, getDoc } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { type Tower } from "@/app/dashboard/owner/projects/[id]/towers/page";
+import { type Project } from "@/app/dashboard/owner/projects/page";
 
 interface AddTowerDialogProps {
     isOpen: boolean;
@@ -55,10 +56,13 @@ export function AddTowerDialog({ isOpen, onOpenChange, projectId, towerToEdit }:
         }
         setLoading(true);
         try {
+            const floorsNum = parseInt(floors);
+            const unitsPerFloorNum = parseInt(unitsPerFloor);
+
             const towerData = {
                 name,
-                floors: parseInt(floors),
-                unitsPerFloor: parseInt(unitsPerFloor),
+                floors: floorsNum,
+                unitsPerFloor: unitsPerFloorNum,
                 projectId: projectId
             };
             
@@ -67,10 +71,37 @@ export function AddTowerDialog({ isOpen, onOpenChange, projectId, towerToEdit }:
                 const towerRef = doc(db, "towers", towerToEdit.id);
                 await updateDoc(towerRef, towerData);
                 toast({ title: "Success", description: "Tower updated successfully." });
+                 // Note: Logic for adjusting units on edit (e.g., adding/removing floors) is complex and not implemented here.
             } else {
                 // Add new tower
-                await addDoc(collection(db, "towers"), towerData);
-                toast({ title: "Success", description: "Tower added successfully." });
+                const towerRef = await addDoc(collection(db, "towers"), towerData);
+                toast({ title: "Success", description: "Tower added successfully. Auto-generating units..." });
+
+                // Auto-generate units for the new tower
+                const projectRef = doc(db, 'projects', projectId);
+                const projectSnap = await getDoc(projectRef);
+                const project = projectSnap.data() as Project;
+
+                for (let f = 1; f <= floorsNum; f++) {
+                    for (let u = 1; u <= unitsPerFloorNum; u++) {
+                        const unitNumber = `${name.charAt(0)}-${f}${u.toString().padStart(2, '0')}`;
+                        const newProperty = {
+                            unitNumber: unitNumber,
+                            project: project.name,
+                            projectId: projectId,
+                            tower: name,
+                            towerId: towerRef.id,
+                            floor: f,
+                            type: '2BHK', // Default value
+                            size: 1200,    // Default value
+                            price: 7500000,// Default value
+                            status: 'Available',
+                            photoUrl: null,
+                        };
+                        await addDoc(collection(db, 'properties'), newProperty);
+                    }
+                }
+                 toast({ title: "Units Generated", description: `Created ${floorsNum * unitsPerFloorNum} units for ${name}.` });
             }
 
             onOpenChange(false);
@@ -94,7 +125,7 @@ export function AddTowerDialog({ isOpen, onOpenChange, projectId, towerToEdit }:
             <DialogHeader>
                 <DialogTitle>{towerToEdit ? "Edit Tower" : "Add New Tower"}</DialogTitle>
                 <DialogDescription>
-                    {towerToEdit ? "Update the details for this tower." : "Fill in the details for the new tower in your project."}
+                    {towerToEdit ? "Update the details for this tower. Note: Changing floor/unit counts will not automatically adjust existing properties." : "Fill in the details for the new tower. This will also auto-generate the associated property units."}
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">

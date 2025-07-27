@@ -1,17 +1,31 @@
 
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { type Project } from "../../page";
+import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface ProjectFile {
+    id: string;
+    name: string;
+    type: "Image" | "Document" | "Spreadsheet" | string;
+    url: string;
+    size: string;
+    date: string;
+}
 
 export default function ProjectFilesPage() {
     const params = useParams();
     const { id } = params;
     const [project, setProject] = useState<Project | null>(null);
+    const [files, setFiles] = useState<ProjectFile[]>([]);
     const [loading, setLoading] = useState(true);
 
      useEffect(() => {
@@ -22,30 +36,103 @@ export default function ProjectFilesPage() {
                 if (docSnap.exists()) {
                     setProject({ id: docSnap.id, ...docSnap.data() } as Project);
                 }
-                setLoading(false);
             }
             fetchProject();
+            
+            const q = query(collection(db, "files"), where("projectId", "==", id));
+            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                const filesData: ProjectFile[] = [];
+                querySnapshot.forEach((doc) => {
+                    filesData.push({ id: doc.id, ...doc.data() } as ProjectFile);
+                });
+                setFiles(filesData);
+                setLoading(false);
+            });
+            return () => unsubscribe();
         }
     }, [id]);
 
+    const imageFiles = files.filter(f => f.type === 'Image');
+    const documentFiles = files.filter(f => f.type !== 'Image');
+
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
             <div className="flex items-center">
                 <h1 className="text-lg font-semibold md:text-2xl">
-                    Photo Gallery: {loading ? 'Loading...' : project?.name || 'Project'}
+                    Photo Gallery & Files: {project?.name || 'Project'}
                 </h1>
             </div>
+
              <Card>
                 <CardHeader>
-                    <CardTitle>Coming Soon</CardTitle>
+                    <CardTitle>Photo Gallery</CardTitle>
                     <CardDescription>
-                        This section is under construction. The photo gallery for this project will be displayed here.
+                        Images uploaded for this project.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">
-                        You will be able to view all images and documents related to this project.
-                    </p>
+                    {loading ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+                        </div>
+                    ) : imageFiles.length > 0 ? (
+                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {imageFiles.map(file => (
+                                <div key={file.id} className="relative aspect-square group">
+                                    <Image src={file.url || `https://placehold.co/400x400.png`} alt={file.name} layout="fill" className="object-cover rounded-lg" data-ai-hint="construction site" />
+                                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2 text-xs rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {file.name}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center">No photos found for this project.</p>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Documents</CardTitle>
+                    <CardDescription>
+                        Documents and other files related to this project.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     {loading ? (
+                         <div className="space-y-2">
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                         </div>
+                    ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>File Name</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead className="text-right">Size</TableHead>
+                                <TableHead className="text-right">Date</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {documentFiles.length > 0 ? (
+                                documentFiles.map(file => (
+                                    <TableRow key={file.id}>
+                                        <TableCell className="font-medium">{file.name}</TableCell>
+                                        <TableCell><Badge variant="secondary">{file.type}</Badge></TableCell>
+                                        <TableCell className="text-right">{file.size}</TableCell>
+                                        <TableCell className="text-right">{file.date}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">No documents found for this project.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                    )}
                 </CardContent>
             </Card>
         </div>

@@ -10,22 +10,8 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { PropertySchema } from '@/lib/types';
 import {z} from 'genkit';
-
-export const PropertySchema = z.object({
-  id: z.string(),
-  unitNumber: z.string(),
-  project: z.string(),
-  tower: z.string().optional(),
-  floor: z.number(),
-  type: z.string(), // e.g., '2BHK'
-  size: z.number(), // in sqft
-  status: z.enum(['Available', 'Booked', 'Sold']),
-  price: z.number(),
-  photoUrl: z.string().optional(),
-});
-export type Property = z.infer<typeof PropertySchema>;
-
 
 export const PropertyRecommendationInputSchema = z.object({
   requirements: z

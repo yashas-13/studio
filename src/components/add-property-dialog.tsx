@@ -34,7 +34,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
     const [type, setType] = useState("");
     const [size, setSize] = useState("");
     const [price, setPrice] = useState("");
-    const [status, setStatus] = useState("Available");
+    const [status, setStatus] = useState<"Available" | "Booked" | "Sold">("Available");
     const [photo, setPhoto] = useState<File | null>(null);
     const [towers, setTowers] = useState<Tower[]>([]);
     const [loading, setLoading] = useState(false);

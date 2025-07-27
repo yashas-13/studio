@@ -10,24 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Building, DoorOpen, BedDouble, PlusCircle, ChevronsUpDown, Filter, SortAsc, SortDesc } from 'lucide-react';
 import { type Project } from '../owner/projects/page';
 import { type Tower } from '../owner/projects/[id]/towers/page';
+import { type Property } from '@/lib/types';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { AddPropertyDialog } from '@/components/add-property-dialog';
-
-interface Property {
-  id: string;
-  unitNumber: string;
-  project: string;
-  projectId: string;
-  tower?: string;
-  towerId?: string;
-  floor: number;
-  type: string; // e.g., '2BHK', '3BHK'
-  size: number; // in sqft
-  status: 'Available' | 'Booked' | 'Sold';
-  price: number;
-  photoUrl?: string;
-}
 
 type SortOption = 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 

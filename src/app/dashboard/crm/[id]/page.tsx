@@ -16,7 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { type LeadStatus, type Lead } from '../page';
 import { Textarea } from '@/components/ui/textarea';
 import { analyzeLead, type AnalyzeLeadOutput } from '@/ai/flows/lead-analysis';
-import { recommendProperties, type PropertyRecommendationInput, type Property } from '@/ai/flows/property-recommendation';
+import { recommendProperties, type PropertyRecommendationInput } from '@/ai/flows/property-recommendation';
+import { type Property } from '@/lib/types';
 import Link from 'next/link';
 
 
@@ -152,6 +153,7 @@ export default function LeadProfilePage() {
 
         if (availableProperties.length === 0) {
             toast({ title: "No Inventory", description: "No available properties found in the inventory to recommend." });
+            setIsRecommending(false);
             return;
         }
 

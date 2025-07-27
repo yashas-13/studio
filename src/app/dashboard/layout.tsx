@@ -82,7 +82,7 @@ export default function DashboardLayout({
 
   const salesRepNavLinks = [
       { href: "/dashboard/sales", icon: Briefcase, label: "Sales Dashboard"},
-      { href: "/dashboard/crm", icon: Users, label: "Leads"},
+      { href: "/dashboard/crm", icon: Users, label: "Pipeline"},
   ];
   
   const getNavLinks = () => {

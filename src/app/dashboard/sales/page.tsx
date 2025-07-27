@@ -154,7 +154,7 @@ export default function SalesDashboardPage() {
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
               <Link href="/dashboard/crm">
-                View All Leads
+                Manage Pipeline
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>

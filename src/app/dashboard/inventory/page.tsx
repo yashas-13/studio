@@ -3,12 +3,14 @@
 
 import { useEffect, useState } from 'react';
 import { db, collection, onSnapshot, query, where } from '@/lib/firebase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, DoorOpen, BedDouble, Bath } from 'lucide-react';
 import { type Project } from '../owner/projects/page';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 
 interface Property {
   id: string;
@@ -50,9 +52,9 @@ export default function InventoryPage() {
     if (selectedProject === 'all') {
       setFilteredProperties(properties);
     } else {
-      const selectedProjectName = projects.find(p => p.id === selectedProject)?.name;
-      if (selectedProjectName) {
-        setFilteredProperties(properties.filter(p => p.project === selectedProjectName));
+      const selectedProjectData = projects.find(p => p.id === selectedProject);
+      if (selectedProjectData) {
+        setFilteredProperties(properties.filter(p => p.project === selectedProjectData.name));
       }
     }
   }, [selectedProject, properties, projects]);
@@ -106,31 +108,42 @@ export default function InventoryPage() {
       {loading ? renderSkeleton() : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProperties.map(prop => (
-            <Card key={prop.id} className="flex flex-col">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-xl">Unit {prop.unitNumber}</CardTitle>
-                        <CardDescription>{prop.project}</CardDescription>
-                    </div>
-                    <Badge variant={getStatusVariant(prop.status)}>{prop.status}</Badge>
+            <Card key={prop.id} className="flex flex-col overflow-hidden">
+                <div className="relative">
+                    <Image 
+                        src={`https://placehold.co/600x400.png`} 
+                        alt={`${prop.project} - Unit ${prop.unitNumber}`}
+                        width={600}
+                        height={400}
+                        className="object-cover w-full h-40"
+                        data-ai-hint="apartment building exterior"
+                    />
+                    <Badge variant={getStatusVariant(prop.status)} className="absolute top-2 right-2">{prop.status}</Badge>
                 </div>
+              <CardHeader>
+                <CardTitle className="text-xl">Unit {prop.unitNumber}</CardTitle>
+                <CardDescription>{prop.project}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow space-y-4">
-                <div className="flex items-center gap-4 text-muted-foreground">
+                <div className="flex items-center justify-between text-muted-foreground">
                     <div className="flex items-center gap-2">
                         <BedDouble className="h-4 w-4" />
-                        <span className="text-sm">{prop.type}</span>
+                        <span className="text-sm font-medium">{prop.type}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <DoorOpen className="h-4 w-4" />
-                        <span className="text-sm">{prop.size} sqft</span>
+                        <span className="text-sm font-medium">{prop.size} sqft</span>
                     </div>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">₹{prop.price.toLocaleString('en-IN')}</p>
                 </div>
               </CardContent>
+              <CardFooter>
+                 <Button disabled={prop.status !== 'Available'} className="w-full">
+                    {prop.status === 'Available' ? 'Block Unit' : `Unit ${prop.status}`}
+                 </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>

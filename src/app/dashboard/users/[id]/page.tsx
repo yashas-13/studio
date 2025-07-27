@@ -26,7 +26,7 @@ interface UserProfile {
 interface SalesRepStats {
     assignedLeads: number;
     bookedLeads: number;
-    revenue: number; // Placeholder
+    revenue: number;
 }
 
 export default function UserProfilePage() {
@@ -67,11 +67,13 @@ export default function UserProfilePage() {
         const userLeads = leadSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
         setLeads(userLeads);
         
-        const bookedLeads = userLeads.filter(l => l.status === 'Booked').length;
+        const bookedLeads = userLeads.filter(l => l.status === 'Booked');
+        const revenue = bookedLeads.reduce((acc, lead) => acc + (lead.price || 0), 0);
+
         setStats({
             assignedLeads: userLeads.length,
-            bookedLeads: bookedLeads,
-            revenue: bookedLeads * 750000 // Placeholder calculation
+            bookedLeads: bookedLeads.length,
+            revenue: revenue
         });
         setLoading(false);
     }
@@ -137,7 +139,7 @@ export default function UserProfilePage() {
                             <span className="font-semibold">{stats.bookedLeads}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-muted-foreground"><DollarSign className="h-4 w-4" /><span>Revenue (Est.)</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><DollarSign className="h-4 w-4" /><span>Revenue Generated</span></div>
                             <span className="font-semibold">₹{stats.revenue.toLocaleString('en-IN')}</span>
                         </div>
                     </CardContent>
@@ -222,7 +224,7 @@ function UserProfileSkeleton() {
                 </div>
             </div>
              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-6">
                     <Card>
                         <CardContent className="pt-6 flex flex-col items-center">
                             <Skeleton className="h-24 w-24 rounded-full mb-4" />
@@ -231,8 +233,16 @@ function UserProfileSkeleton() {
                             <Skeleton className="h-6 w-20" />
                         </CardContent>
                     </Card>
+                     <Card>
+                        <CardHeader><Skeleton className="h-6 w-32" /></CardHeader>
+                        <CardContent className="space-y-4">
+                            <Skeleton className="h-5 w-full" />
+                            <Skeleton className="h-5 w-full" />
+                            <Skeleton className="h-5 w-full" />
+                        </CardContent>
+                    </Card>
                 </div>
-                 <div className="lg:col-span-2 space-y-6">
+                 <div className="lg:col-span-2">
                     <Card>
                         <CardHeader>
                              <Skeleton className="h-6 w-40 mb-2" />
@@ -240,15 +250,6 @@ function UserProfileSkeleton() {
                         </CardHeader>
                          <CardContent>
                             <Skeleton className="h-24 w-full" />
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <Skeleton className="h-6 w-40 mb-2" />
-                            <Skeleton className="h-4 w-56" />
-                        </CardHeader>
-                         <CardContent>
-                             <Skeleton className="h-12 w-full" />
                         </CardContent>
                     </Card>
                 </div>

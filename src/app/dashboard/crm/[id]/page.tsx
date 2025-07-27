@@ -334,7 +334,7 @@ export default function LeadProfilePage() {
                         <div className="space-y-4">
                             {availableInventory.length > 0 ? (
                                 availableInventory.map(prop => (
-                                    <Link key={prop.id} href={`/dashboard/inventory?property=${prop.id}`}>
+                                    <Link key={prop.id} href={`/dashboard/inventory/${prop.id}`}>
                                         <div className="p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer">
                                             <div className="font-semibold">{prop.unitNumber} in {prop.tower || prop.project}</div>
                                             <div className="text-sm text-muted-foreground flex justify-between">

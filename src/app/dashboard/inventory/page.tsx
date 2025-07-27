@@ -14,6 +14,7 @@ import { type Property } from '@/lib/types';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { AddPropertyDialog } from '@/components/add-property-dialog';
+import Link from 'next/link';
 
 type SortOption = 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 
@@ -186,47 +187,49 @@ export default function InventoryPage() {
         {loading ? renderSkeleton() : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProperties.length > 0 ? filteredProperties.map(prop => (
-              <Card key={prop.id} className="flex flex-col overflow-hidden">
-                  <div className="relative">
-                      <Image 
-                          src={prop.photoUrl || `https://placehold.co/600x400.png`} 
-                          alt={`${prop.project} - Unit ${prop.unitNumber}`}
-                          width={600}
-                          height={400}
-                          className="object-cover w-full h-40"
-                          data-ai-hint="apartment building exterior"
-                      />
-                      <Badge variant={getStatusVariant(prop.status)} className="absolute top-2 right-2">{prop.status}</Badge>
-                  </div>
-                <CardHeader>
-                  <CardTitle className="text-xl">Unit {prop.unitNumber}</CardTitle>
-                  <CardDescription>{prop.project}{prop.tower ? ` - ${prop.tower}` : ''}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow space-y-4">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                          <BedDouble className="h-4 w-4" />
-                          <span className="text-sm font-medium">{prop.type}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <DoorOpen className="h-4 w-4" />
-                          <span className="text-sm font-medium">{prop.size} sqft</span>
-                      </div>
-                       <div className="flex items-center gap-2">
-                          <Building className="h-4 w-4" />
-                          <span className="text-sm font-medium">Floor {prop.floor || 'N/A'}</span>
-                      </div>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">₹{prop.price.toLocaleString('en-IN')}</p>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button disabled={prop.status !== 'Available'} className="w-full">
-                      {prop.status === 'Available' ? 'Block Unit' : `Unit ${prop.status}`}
-                  </Button>
-                </CardFooter>
-              </Card>
+              <Link href={`/dashboard/inventory/${prop.id}`} key={prop.id}>
+                <Card className="flex flex-col overflow-hidden h-full hover:shadow-lg">
+                    <div className="relative">
+                        <Image 
+                            src={prop.photoUrl || `https://placehold.co/600x400.png`} 
+                            alt={`${prop.project} - Unit ${prop.unitNumber}`}
+                            width={600}
+                            height={400}
+                            className="object-cover w-full h-40"
+                            data-ai-hint="apartment building exterior"
+                        />
+                        <Badge variant={getStatusVariant(prop.status)} className="absolute top-2 right-2">{prop.status}</Badge>
+                    </div>
+                  <CardHeader>
+                    <CardTitle className="text-xl">Unit {prop.unitNumber}</CardTitle>
+                    <CardDescription>{prop.project}{prop.tower ? ` - ${prop.tower}` : ''}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-4">
+                    <div className="flex items-center justify-between text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                            <BedDouble className="h-4 w-4" />
+                            <span className="text-sm font-medium">{prop.type}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <DoorOpen className="h-4 w-4" />
+                            <span className="text-sm font-medium">{prop.size} sqft</span>
+                        </div>
+                         <div className="flex items-center gap-2">
+                            <Building className="h-4 w-4" />
+                            <span className="text-sm font-medium">Floor {prop.floor || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">₹{prop.price.toLocaleString('en-IN')}</p>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button variant="secondary" className="w-full">
+                        View Details
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </Link>
             )) : (
                 <div className="col-span-full text-center py-12">
                     <p className="text-muted-foreground">No properties match your current filters.</p>

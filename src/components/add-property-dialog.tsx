@@ -171,7 +171,18 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="type" className="text-right">Type</Label>
-                    <Input id="type" value={type} onChange={(e) => setType(e.target.value)} className="col-span-3" placeholder="e.g., 2BHK, 3BHK, Office" />
+                     <Select value={type} onValueChange={setType}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select a unit type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="1BHK">1BHK</SelectItem>
+                            <SelectItem value="2BHK">2BHK</SelectItem>
+                            <SelectItem value="3BHK">3BHK</SelectItem>
+                            <SelectItem value="Penthouse">Penthouse</SelectItem>
+                            <SelectItem value="Office Space">Office Space</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="size" className="text-right">Size (sqft)</Label>

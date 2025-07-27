@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { PlusCircle, MoreHorizontal } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Users, UserPlus, CheckCircle, TrendingUp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -114,10 +114,16 @@ export default function CrmPage() {
       default: return 'default';
     }
   }
+  
+  const newLeadsCount = leads.filter(l => l.status === 'New').length;
+  const qualifiedLeadsCount = leads.filter(l => l.status === 'Qualified').length;
+  const closedDeals = 15; // Sample data for conversion rate
+  const conversionRate = leads.length > 0 ? (closedDeals / leads.length) * 100 : 0;
+
 
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <div className="flex items-center">
           <h1 className="text-lg font-semibold md:text-2xl">CRM Dashboard</h1>
           <div className="ml-auto flex items-center gap-2">
@@ -129,6 +135,50 @@ export default function CrmPage() {
             </Button>
           </div>
         </div>
+
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{leads.length}</div>
+                    <p className="text-xs text-muted-foreground">All customer leads in the pipeline</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">New Leads</CardTitle>
+                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">+{newLeadsCount}</div>
+                    <p className="text-xs text-muted-foreground">Leads that need to be contacted</p>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Qualified Leads</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{qualifiedLeadsCount}</div>
+                    <p className="text-xs text-muted-foreground">Leads ready for a sales pitch</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{conversionRate.toFixed(1)}%</div>
+                    <p className="text-xs text-muted-foreground">Based on sample closed deals</p>
+                </CardContent>
+            </Card>
+        </div>
+        
         <Card>
           <CardHeader>
             <CardTitle>Customer Leads</CardTitle>
@@ -216,4 +266,3 @@ export default function CrmPage() {
       </Dialog>
     </>
   );
-}

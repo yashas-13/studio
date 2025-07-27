@@ -10,11 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Mail, Phone, User, Activity, Briefcase, MessageSquare, PhoneCall, Users } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Activity, Briefcase, MessageSquare, PhoneCall, Users, Sparkles, Loader2, MoveRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { type LeadStatus } from '../page';
 import { Textarea } from '@/components/ui/textarea';
+import { analyzeLead, type AnalyzeLeadOutput } from '@/ai/flows/lead-analysis';
 
 
 interface Lead {
@@ -44,6 +45,8 @@ export default function LeadProfilePage() {
   const [newNote, setNewNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalyzeLeadOutput | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -122,6 +125,25 @@ export default function LeadProfilePage() {
       } finally {
         setIsSubmittingNote(false);
       }
+  };
+  
+  const handleAnalyzeLead = async () => {
+    if (!lead) return;
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    try {
+        const activityHistory = activities.map(a => `${a.user} (${a.type} at ${formatTimestamp(a.date)}): ${a.content}`).join('\n');
+        const result = await analyzeLead({
+            requirements: lead.requirements,
+            activityHistory: activityHistory
+        });
+        setAnalysisResult(result);
+    } catch (error) {
+        console.error("Error analyzing lead: ", error);
+        toast({ title: "Error", description: "Could not get AI insights.", variant: "destructive" });
+    } finally {
+        setIsAnalyzing(false);
+    }
   };
   
   const getActivityIcon = (type: ActivityItem['type']) => {
@@ -219,6 +241,53 @@ export default function LeadProfilePage() {
                     <p className="text-muted-foreground text-sm">
                         {lead.requirements || "No specific requirements have been logged."}
                     </p>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>AI Insights</CardTitle>
+                    <CardDescription>Get AI-powered analysis of this lead.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={handleAnalyzeLead} disabled={isAnalyzing} className="w-full">
+                        {isAnalyzing ? <Loader2 className="animate-spin mr-2"/> : <Sparkles className="mr-2" />}
+                        Generate Insights
+                    </Button>
+                    {isAnalyzing && (
+                        <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    )}
+                    {analysisResult && (
+                        <div className="space-y-6 pt-4">
+                            <div>
+                                <h3 className="font-semibold text-md mb-2">Summary</h3>
+                                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">{analysisResult.summary}</p>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-md mb-2">Key Points</h3>
+                                <ul className="space-y-2">
+                                    {analysisResult.keyPoints.map((point, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                        <MoveRight className="h-4 w-4 mt-1 text-primary" />
+                                        <span className="text-sm text-muted-foreground">{point}</span>
+                                    </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-md mb-2">Next Actions</h3>
+                                <ul className="space-y-2">
+                                    {analysisResult.nextActions.map((action, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                        <MoveRight className="h-4 w-4 mt-1 text-primary" />
+                                        <span className="text-sm text-muted-foreground">{action}</span>
+                                    </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -320,5 +389,3 @@ function LeadProfileSkeleton() {
         </div>
     )
 }
-
-    

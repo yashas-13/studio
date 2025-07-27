@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import Link from "next/link";
-import { Mail, User } from "lucide-react";
+import { Mail, Phone, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface LeadPipelineProps {
@@ -34,6 +34,10 @@ export function LeadPipeline({ leads, loading }: LeadPipelineProps) {
             <Mail className="h-3 w-3" />
             <span>{lead.email}</span>
         </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+            <Phone className="h-3 w-3" />
+            <span>{lead.phone || 'N/A'}</span>
+        </div>
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
                 <User className="h-3 w-3 text-muted-foreground" />
@@ -54,6 +58,7 @@ export function LeadPipeline({ leads, loading }: LeadPipelineProps) {
                 <CardContent className="space-y-3">
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-full" />
                 </CardContent>
              </Card>
         ))}
@@ -78,3 +83,5 @@ export function LeadPipeline({ leads, loading }: LeadPipelineProps) {
     </div>
   );
 }
+
+    

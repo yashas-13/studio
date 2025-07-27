@@ -33,6 +33,7 @@ import {
 import { type Lead } from "../crm/page";
 import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { LeadAnalysisClient } from "@/components/client/lead-analysis-client";
 
 interface ActivityFeedItem {
     id: string;
@@ -213,6 +214,17 @@ export default function SalesDashboardPage() {
           </CardContent>
         </Card>
       </div>
+      <Card className="xl:col-span-3">
+        <CardHeader>
+            <CardTitle>AI Lead Assistant</CardTitle>
+            <CardDescription>Get AI-powered insights and next steps for a lead.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <LeadAnalysisClient />
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
+    

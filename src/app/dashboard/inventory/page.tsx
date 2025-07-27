@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, DoorOpen, BedDouble, Bath, PlusCircle } from 'lucide-react';
+import { Building, DoorOpen, BedDouble, Bath, PlusCircle, ChevronsUpDown } from 'lucide-react';
 import { type Project } from '../owner/projects/page';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ interface Property {
   id: string;
   unitNumber: string;
   project: string;
+  tower?: string;
   type: string; // e.g., '2BHK', '3BHK'
   size: number; // in sqft
   status: 'Available' | 'Booked' | 'Sold';
@@ -36,7 +37,7 @@ export default function InventoryPage() {
     const propertiesUnsub = onSnapshot(collection(db, 'properties'), (snapshot) => {
       const propsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Property));
       setProperties(propsData);
-      setFilteredProperties(propsData);
+      setFilteredProperties(propsData); // Initially show all
       setLoading(false);
     });
 
@@ -132,7 +133,7 @@ export default function InventoryPage() {
                   </div>
                 <CardHeader>
                   <CardTitle className="text-xl">Unit {prop.unitNumber}</CardTitle>
-                  <CardDescription>{prop.project}</CardDescription>
+                  <CardDescription>{prop.project}{prop.tower ? ` - ${prop.tower}` : ''}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow space-y-4">
                   <div className="flex items-center justify-between text-muted-foreground">

@@ -65,7 +65,7 @@ export default function ProjectTowersPage() {
     }
     
     const handleDeleteClick = async (towerId: string) => {
-        if (window.confirm("Are you sure you want to delete this tower?")) {
+        if (window.confirm("Are you sure you want to delete this tower? This action cannot be undone.")) {
             await deleteDoc(doc(db, "towers", towerId));
         }
     }

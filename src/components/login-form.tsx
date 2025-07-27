@@ -26,7 +26,7 @@ export function LoginForm() {
     } else if (role === 'entryguard') {
       router.push('/dashboard/materials');
     } else if (role === 'salesrep') {
-      router.push('/dashboard/crm');
+      router.push('/dashboard/sales');
     }
   };
 

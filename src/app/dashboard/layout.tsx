@@ -81,7 +81,8 @@ export default function DashboardLayout({
   ];
 
   const salesRepNavLinks = [
-      { href: "/dashboard/crm", icon: Briefcase, label: "CRM"},
+      { href: "/dashboard/sales", icon: Briefcase, label: "Sales Dashboard"},
+      { href: "/dashboard/crm", icon: Users, label: "Leads"},
   ];
   
   const getNavLinks = () => {

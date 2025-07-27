@@ -22,6 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 export default function ProjectDetailsPage() {
   const params = useParams();
@@ -152,14 +153,18 @@ export default function ProjectDetailsPage() {
                     <CardDescription>Quick links to project resources.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start gap-2">
+                    <Button variant="outline" className="w-full justify-start gap-2" disabled>
                         <ListTodo /> Task List
                     </Button>
-                     <Button variant="outline" className="w-full justify-start gap-2">
-                        <Construction /> Material Usage
+                    <Button asChild variant="outline" className="w-full justify-start gap-2">
+                        <Link href="/dashboard/usage">
+                            <Construction /> Material Usage
+                        </Link>
                     </Button>
-                     <Button variant="outline" className="w-full justify-start gap-2">
-                        <GalleryVertical /> Photo Gallery
+                    <Button asChild variant="outline" className="w-full justify-start gap-2">
+                        <Link href="/dashboard/file-sharing">
+                            <GalleryVertical /> Photo Gallery
+                        </Link>
                     </Button>
                 </CardContent>
             </Card>

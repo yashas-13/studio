@@ -23,6 +23,7 @@ import {
   Users,
   Voicemail,
   Menu,
+  Building,
 } from "lucide-react";
 import {
   Sheet,
@@ -34,6 +35,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { ConstructWiseLogo } from "@/components/icons";
 
 export default function DashboardLayout({
   children,
@@ -83,6 +85,7 @@ export default function DashboardLayout({
   const salesRepNavLinks = [
       { href: "/dashboard/sales", icon: Briefcase, label: "Sales Dashboard"},
       { href: "/dashboard/crm", icon: Users, label: "Pipeline"},
+      { href: "/dashboard/inventory", icon: Building, label: "Inventory"},
   ];
   
   const getNavLinks = () => {

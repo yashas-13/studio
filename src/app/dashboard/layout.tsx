@@ -116,16 +116,16 @@ export default function DashboardLayout({
           {children}
         </main>
       {/* Bottom Navigation for Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t z-50">
-        <div className={`grid h-16 grid-cols-${navLinks.length || 1} items-center justify-items-center`}>
+      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t z-50 md:hidden">
+        <div className="flex h-16 items-center justify-around">
             {navLinks.map((link) => (
                 <Link
                 key={link.href}
                 href={link.href}
-                className={`flex flex-col items-center gap-1 transition-all hover:text-primary ${getActiveLinkClasses(link.href)}`}
+                className={`flex flex-col items-center gap-1.5 p-2 transition-all hover:text-primary ${getActiveLinkClasses(link.href)}`}
                 >
-                <link.icon className="h-6 w-6" />
-                <span className="text-xs">{link.label}</span>
+                <link.icon className="h-5 w-5" />
+                <span className="text-xs font-medium">{link.label}</span>
                 </Link>
             ))}
         </div>

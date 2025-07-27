@@ -61,7 +61,7 @@ export default function SalesAnalyticsPage() {
         if (leads.length > 0 && rawSalesReps.length > 0) {
             const repsData = rawSalesReps.map(rep => {
                 const assignedLeads = leads.filter(lead => lead.assignedTo === rep.name);
-                const closedLeads = assignedLeads.filter(lead => lead.status === 'Qualified'); // Assuming qualified = closed for demo
+                const closedLeads = assignedLeads.filter(lead => lead.status === 'Booked'); // Assuming qualified = closed for demo
                 return {
                     ...rep,
                     leads: assignedLeads.length,
@@ -181,5 +181,3 @@ export default function SalesAnalyticsPage() {
         </div>
     );
 }
-
-    

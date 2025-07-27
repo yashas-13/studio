@@ -15,7 +15,7 @@ interface LeadPipelineProps {
   loading: boolean;
 }
 
-const columns: LeadStatus[] = ["New", "Contacted", "Qualified", "Lost"];
+const columns: LeadStatus[] = ["Warm", "Hot", "Cold", "Booked"];
 
 export function LeadPipeline({ leads, loading }: LeadPipelineProps) {
     const router = useRouter();
@@ -83,5 +83,3 @@ export function LeadPipeline({ leads, loading }: LeadPipelineProps) {
     </div>
   );
 }
-
-    

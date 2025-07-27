@@ -61,7 +61,7 @@ export default function PropertyDetailsPage() {
 
   useEffect(() => {
     // Fetch qualified leads for the booking dialog
-    const q = query(collection(db, "leads"), where("status", "==", "Qualified"));
+    const q = query(collection(db, "leads"), where("status", "==", "Hot"));
     const unsub = onSnapshot(q, (snapshot) => {
         const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
         setQualifiedLeads(leadsData);

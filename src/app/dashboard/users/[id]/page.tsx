@@ -25,7 +25,7 @@ interface UserProfile {
 
 interface SalesRepStats {
     assignedLeads: number;
-    qualifiedLeads: number;
+    bookedLeads: number;
     revenue: number; // Placeholder
 }
 
@@ -67,11 +67,11 @@ export default function UserProfilePage() {
         const userLeads = leadSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
         setLeads(userLeads);
         
-        const qualifiedLeads = userLeads.filter(l => l.status === 'Qualified').length;
+        const bookedLeads = userLeads.filter(l => l.status === 'Booked').length;
         setStats({
             assignedLeads: userLeads.length,
-            qualifiedLeads: qualifiedLeads,
-            revenue: qualifiedLeads * 750000 // Placeholder calculation
+            bookedLeads: bookedLeads,
+            revenue: bookedLeads * 750000 // Placeholder calculation
         });
         setLoading(false);
     }
@@ -134,7 +134,7 @@ export default function UserProfilePage() {
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-muted-foreground"><CheckCircle className="h-4 w-4" /><span>Deals Closed</span></div>
-                            <span className="font-semibold">{stats.qualifiedLeads}</span>
+                            <span className="font-semibold">{stats.bookedLeads}</span>
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-muted-foreground"><DollarSign className="h-4 w-4" /><span>Revenue (Est.)</span></div>
@@ -256,5 +256,3 @@ function UserProfileSkeleton() {
         </div>
     )
 }
-
-    

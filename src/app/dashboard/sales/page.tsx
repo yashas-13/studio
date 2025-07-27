@@ -115,10 +115,10 @@ export default function SalesDashboardPage() {
         };
       }, []);
 
-    const newLeadsCount = leads.filter(l => l.status === 'New').length;
-    const qualifiedLeadsCount = leads.filter(l => l.status === 'Qualified').length;
-    const closedDeals = 15; // Sample data for conversion rate
-    const conversionRate = leads.length > 0 ? (closedDeals / leads.length) * 100 : 0;
+    const warmLeadsCount = leads.filter(l => l.status === 'Warm').length;
+    const hotLeadsCount = leads.filter(l => l.status === 'Hot').length;
+    const bookedLeads = leads.filter(l => l.status === 'Booked').length;
+    const conversionRate = leads.length > 0 ? (bookedLeads / leads.length) * 100 : 0;
     
     const handleInputChange = (name: string, value: string) => {
       setNewLead(prev => ({ ...prev, [name]: value }));
@@ -145,7 +145,7 @@ export default function SalesDashboardPage() {
           requirements: finalRequirements,
           projectId: newLead.projectId,
           projectName: selectedProject?.name,
-          status: "New",
+          status: "Warm",
           assignedTo: "Anjali Sharma", // Placeholder, ideally this would be the logged in user's name
           createdAt: serverTimestamp(),
         });
@@ -197,22 +197,22 @@ export default function SalesDashboardPage() {
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">New Leads</CardTitle>
+                <CardTitle className="text-sm font-medium">Warm Leads</CardTitle>
                 <UserPlus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">+{newLeadsCount}</div>
+                <div className="text-2xl font-bold">+{warmLeadsCount}</div>
                 <p className="text-xs text-muted-foreground">Ready to be contacted</p>
             </CardContent>
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Qualified</CardTitle>
+                <CardTitle className="text-sm font-medium">Hot Leads</CardTitle>
                 <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{qualifiedLeadsCount}</div>
-                <p className="text-xs text-muted-foreground">Hot leads in the pipeline</p>
+                <div className="text-2xl font-bold">{hotLeadsCount}</div>
+                <p className="text-xs text-muted-foreground">High-interest in the pipeline</p>
             </CardContent>
         </Card>
         <Card>
@@ -222,7 +222,7 @@ export default function SalesDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{conversionRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">Based on sample closed deals</p>
+            <p className="text-xs text-muted-foreground">Based on booked deals</p>
           </CardContent>
         </Card>
       </div>

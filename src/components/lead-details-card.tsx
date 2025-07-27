@@ -25,10 +25,10 @@ export default function LeadDetailsCard({ lead }: LeadDetailsCardProps) {
 
     const getStatusVariant = (status: Lead['status']): "secondary" | "outline" | "default" | "destructive" => {
         switch (status) {
-          case 'New': return 'default';
-          case 'Contacted': return 'outline';
-          case 'Qualified': return 'secondary';
-          case 'Lost': return 'destructive';
+          case 'Warm': return 'default';
+          case 'Hot': return 'secondary';
+          case 'Cold': return 'destructive';
+          case 'Booked': return 'outline';
           default: return 'default';
         }
     }
@@ -103,10 +103,10 @@ export default function LeadDetailsCard({ lead }: LeadDetailsCardProps) {
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="New">New</SelectItem>
-                                <SelectItem value="Contacted">Contacted</SelectItem>
-                                <SelectItem value="Qualified">Qualified</SelectItem>
-                                <SelectItem value="Lost">Lost</SelectItem>
+                                <SelectItem value="Warm">Warm</SelectItem>
+                                <SelectItem value="Hot">Hot</SelectItem>
+                                <SelectItem value="Cold">Cold</SelectItem>
+                                <SelectItem value="Booked">Booked</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

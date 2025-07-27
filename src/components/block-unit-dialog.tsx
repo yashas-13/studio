@@ -31,7 +31,7 @@ export function BlockUnitDialog({ isOpen, onOpenChange, leads, onBlockConfirm }:
 
     const handleSubmit = () => {
         if (!selectedLeadId) {
-            toast({ title: "Error", description: "Please select a qualified lead.", variant: "destructive" });
+            toast({ title: "Error", description: "Please select a hot lead.", variant: "destructive" });
             return;
         }
         setLoading(true);
@@ -53,12 +53,12 @@ export function BlockUnitDialog({ isOpen, onOpenChange, leads, onBlockConfirm }:
             <DialogHeader>
                 <DialogTitle>Block Unit for Lead</DialogTitle>
                 <DialogDescription>
-                    Select a qualified lead to book this unit for. This will change the unit's status to "Booked".
+                    Select a hot lead to book this unit for. This will change the unit's status to "Booked".
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="lead" className="text-right">Qualified Lead</Label>
+                    <Label htmlFor="lead" className="text-right">Hot Lead</Label>
                     <Select value={selectedLeadId} onValueChange={setSelectedLeadId}>
                         <SelectTrigger className="col-span-3">
                             <SelectValue placeholder="Select a lead" />
@@ -66,7 +66,7 @@ export function BlockUnitDialog({ isOpen, onOpenChange, leads, onBlockConfirm }:
                         <SelectContent>
                             {leads.length > 0 ? leads.map(lead => (
                                 <SelectItem key={lead.id} value={lead.id}>{lead.name}</SelectItem>
-                            )) : <p className="p-4 text-sm text-muted-foreground">No qualified leads found.</p>}
+                            )) : <p className="p-4 text-sm text-muted-foreground">No hot leads found.</p>}
                         </SelectContent>
                     </Select>
                 </div>

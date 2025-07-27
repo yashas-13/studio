@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { db, collection, onSnapshot, query, orderBy } from "@/lib/firebase";
 import { LeadPipeline } from "@/components/lead-pipeline";
 
-export type LeadStatus = 'New' | 'Contacted' | 'Qualified' | 'Lost';
+export type LeadStatus = 'Warm' | 'Hot' | 'Cold' | 'Booked';
 export interface Lead {
   id: string;
   name: string;

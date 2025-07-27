@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   MoreHorizontal,
   PlusCircle,
@@ -65,6 +66,7 @@ export function UsersClient() {
     role: ""
   });
   const { toast } = useToast();
+  const router = useRouter();
   
   useEffect(() => {
     const q = collection(db, "users");
@@ -111,7 +113,7 @@ export function UsersClient() {
         <div className="ml-auto flex items-center gap-2">
           <Button size="sm" className="h-8 gap-1" onClick={() => setIsDialogOpen(true)}>
             <PlusCircle className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+            <span className="sr-only sm:not-sr-only sm:whitespace-rap">
               Add User
             </span>
           </Button>
@@ -138,7 +140,7 @@ export function UsersClient() {
             </TableHeader>
             <TableBody>
               {users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.id} className="cursor-pointer" onClick={() => router.push(`/dashboard/users/${user.id}`)}>
                   <TableCell className="font-medium">
                      <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
@@ -157,7 +159,7 @@ export function UsersClient() {
                   <TableCell>
                     <Badge variant={user.role === 'owner' ? 'default' : 'secondary'}>{user.role}</Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -171,6 +173,7 @@ export function UsersClient() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem>Edit</DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => handleDelete(user.id)}

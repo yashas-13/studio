@@ -52,14 +52,15 @@ export function LoginForm() {
         return;
     };
 
-    localStorage.setItem('userRole', role);
-    
-    // You could also store userId in localStorage if needed for personalization
-    // localStorage.setItem('userId', userId);
-    
-    // Find the selected user to potentially pass their name or other info
     const selectedUser = allUsers.find(u => u.id === userId);
-
+    if (selectedUser) {
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('userName', selectedUser.name);
+    } else {
+        toast({ title: "Error", description: "Selected user not found.", variant: "destructive"});
+        return;
+    }
+    
     if (role === 'owner') {
       router.push('/dashboard/owner');
     } else if (role === 'sitemanager') {

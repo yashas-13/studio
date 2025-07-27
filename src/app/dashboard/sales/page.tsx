@@ -71,6 +71,7 @@ export default function SalesDashboardPage() {
     const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [userName, setUserName] = useState<string | null>(null);
     const [newLead, setNewLead] = useState({
       name: "",
       email: "",
@@ -82,6 +83,9 @@ export default function SalesDashboardPage() {
     const { toast } = useToast();
 
     useEffect(() => {
+        const loggedInUserName = localStorage.getItem('userName');
+        setUserName(loggedInUserName);
+
         const qLeads = query(collection(db, "leads"), orderBy("createdAt", "desc"));
         const unsubscribeLeads = onSnapshot(qLeads, (snapshot) => {
           const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Lead[];
@@ -127,6 +131,10 @@ export default function SalesDashboardPage() {
         toast({ title: "Error", description: "Please fill name, email and project.", variant: "destructive" });
         return;
       }
+      if (!userName) {
+        toast({ title: "Error", description: "Could not identify current user. Please login again.", variant: "destructive" });
+        return;
+      }
 
       try {
         const selectedProject = projects.find(p => p.id === newLead.projectId);
@@ -143,7 +151,7 @@ export default function SalesDashboardPage() {
           projectId: newLead.projectId,
           projectName: selectedProject?.name,
           status: "Warm",
-          assignedTo: "Anjali Sharma", 
+          assignedTo: userName, 
           createdAt: serverTimestamp(),
         });
         toast({ title: "Success", description: "New lead added." });

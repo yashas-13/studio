@@ -15,6 +15,7 @@ export interface Project {
   description: string;
   location: string;
   siteEngineer: string;
+  entryGuard: string;
   status: 'Planning' | 'In Progress' | 'Completed';
   createdAt: any;
   budget: number;

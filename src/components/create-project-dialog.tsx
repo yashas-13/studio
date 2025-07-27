@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { db, collection, addDoc, serverTimestamp, onSnapshot } from "@/lib/firebase";
+import { db, collection, addDoc, serverTimestamp, onSnapshot, query, where } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreateProjectDialogProps {
@@ -24,9 +24,10 @@ interface CreateProjectDialogProps {
     onOpenChange: (isOpen: boolean) => void;
 }
 
-interface SiteManager {
+interface User {
     id: string;
     name: string;
+    role: string;
 }
 
 export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialogProps) {
@@ -34,28 +35,29 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
     const [description, setDescription] = useState("");
     const [location, setLocation] = useState("");
     const [siteEngineer, setSiteEngineer] = useState("");
+    const [entryGuard, setEntryGuard] = useState("");
     const [budget, setBudget] = useState("");
-    const [siteManagers, setSiteManagers] = useState<SiteManager[]>([]);
+    const [siteManagers, setSiteManagers] = useState<User[]>([]);
+    const [entryGuards, setEntryGuards] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
-        const q = collection(db, "users");
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const managers: SiteManager[] = [];
+        const qUsers = collection(db, "users");
+        const unsubscribe = onSnapshot(qUsers, (querySnapshot) => {
+            const allUsers: User[] = [];
             querySnapshot.forEach((doc) => {
-                if(doc.data().role === 'sitemanager') {
-                    managers.push({ id: doc.id, name: doc.data().name });
-                }
+                allUsers.push({ id: doc.id, ...doc.data() } as User);
             });
-            setSiteManagers(managers);
+            setSiteManagers(allUsers.filter(u => u.role === 'sitemanager'));
+            setEntryGuards(allUsers.filter(u => u.role === 'entryguard'));
         });
 
         return () => unsubscribe();
     }, []);
 
     const handleSubmit = async () => {
-        if (!name || !description || !siteEngineer || !location || !budget) {
+        if (!name || !description || !siteEngineer || !location || !budget || !entryGuard) {
             toast({ title: "Error", description: "Please fill all fields.", variant: "destructive" });
             return;
         }
@@ -66,6 +68,7 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
                 description,
                 location,
                 siteEngineer,
+                entryGuard,
                 budget: parseFloat(budget),
                 spent: 0,
                 progress: 0,
@@ -79,6 +82,7 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
             setDescription("");
             setLocation("");
             setSiteEngineer("");
+            setEntryGuard("");
             setBudget("");
         } catch (error) {
             console.error("Error creating project:", error);
@@ -127,6 +131,19 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
                         </SelectContent>
                     </Select>
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="entry-guard" className="text-right">Entry Guard</Label>
+                    <Select value={entryGuard} onValueChange={setEntryGuard}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select a guard" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {entryGuards.map(guard => (
+                                <SelectItem key={guard.id} value={guard.name}>{guard.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
             <DialogFooter>
                 <DialogClose asChild>
@@ -140,5 +157,3 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
       </Dialog>
     )
 }
-
-    

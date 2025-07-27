@@ -65,7 +65,7 @@ export function LoginForm() {
     } else if (role === 'sitemanager') {
       router.push('/dashboard');
     } else if (role === 'entryguard') {
-      router.push('/dashboard/materials');
+      router.push('/dashboard/material-entry');
     } else if (role === 'salesrep') {
       router.push('/dashboard/sales');
     }
@@ -119,5 +119,3 @@ export function LoginForm() {
     </Card>
   );
 }
-
-    

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -139,7 +140,7 @@ export function UsageClient() {
       const activityDetail = `${usedQuantity} ${materialData.unit || ''} of ${materialData.name} used at ${newLog.project} (${newLog.area}).`;
       await addDoc(collection(db, "activityFeed"), {
         type: 'MATERIAL_USAGE',
-        user: 'Site Manager',
+        user: 'Site Manager', // Placeholder user
         details: activityDetail,
         timestamp: serverTimestamp()
       });
@@ -247,7 +248,7 @@ export function UsageClient() {
               </div>
             </CardContent>
             <CardContent>
-              <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Submit Usage Log</Button>
+              <Button type="submit" className="w-full">Submit Usage Log</Button>
             </CardContent>
           </form>
         </Card>

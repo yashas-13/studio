@@ -174,26 +174,30 @@ export default function MaterialEntryPage() {
     }
 
     try {
+      // Find the material in the main inventory
       const q = query(collection(db, "materials"), where("name", "==", newMaterial.name), where("project", "==", newMaterial.project));
       const querySnapshot = await getDocs(q);
       
       const payload: any = {
-        quantity: 0,
         lastUpdated: new Date().toISOString(),
         supplier: newMaterial.supplier,
         status: "Delivered"
       };
-      
+
+      // In a real app, you would upload files to Firebase Storage and get URLs.
+      // For this demo, we are just noting if a file was selected.
       if (newMaterial.invoice) payload.invoiceUrl = `invoices/${newMaterial.invoice.name}`;
       if (newMaterial.photo) payload.photoUrl = `photos/${newMaterial.photo.name}`;
       
       if (!querySnapshot.empty) {
+        // Material exists, update its quantity
         const existingDoc = querySnapshot.docs[0];
         const currentQuantity = existingDoc.data().quantity || 0;
         payload.quantity = currentQuantity + quantity;
 
         await updateDoc(existingDoc.ref, payload);
       } else {
+        // New material, create a new document in inventory
         payload.name = newMaterial.name;
         payload.project = newMaterial.project;
         payload.unit = newMaterial.unit;
@@ -202,17 +206,19 @@ export default function MaterialEntryPage() {
         await addDoc(collection(db, "materials"), payload);
       }
       
+      // Create a log entry for this specific delivery
       const entryLog = {
           name: newMaterial.name,
           supplier: newMaterial.supplier,
           project: newMaterial.project,
           quantity: quantity,
           unit: newMaterial.unit,
-          user: 'Entry Guard',
+          user: 'Entry Guard', // Placeholder user
           timestamp: serverTimestamp()
       }
       await addDoc(collection(db, "materialEntries"), entryLog);
 
+      // Create an activity feed item for the owner's dashboard
       const activityDetail = `${quantity} ${newMaterial.unit} of ${newMaterial.name} received for project ${newMaterial.project}.`;
       await addDoc(collection(db, "activityFeed"), {
         type: 'MATERIAL_ENTRY',
@@ -360,5 +366,3 @@ export default function MaterialEntryPage() {
     </div>
   );
 }
-
-    

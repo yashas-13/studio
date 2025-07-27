@@ -7,6 +7,7 @@ import {
   Bell,
   Bot,
   Box,
+  Briefcase,
   CheckCheck,
   ClipboardList,
   FileArchive,
@@ -59,8 +60,12 @@ export default function DashboardLayout({
         if (!pathname.startsWith('/dashboard/file-sharing') && !pathname.startsWith('/dashboard/users')) {
            // router.push('/dashboard/owner');
         }
-      } else if (role === 'sitemanager' && pathname.startsWith('/dashboard/owner')) {
+      } else if (role === 'sitemanager' && (pathname.startsWith('/dashboard/owner') || pathname.startsWith('/dashboard/crm'))) {
         router.push('/dashboard');
+      } else if (role === 'entryguard' && !pathname.startsWith('/dashboard/materials')) {
+        if (pathname !== '/dashboard') router.push('/dashboard/materials');
+      } else if (role === 'salesrep' && !pathname.startsWith('/dashboard/crm')) {
+        router.push('/dashboard/crm');
       }
     }
   }, [pathname, router]);
@@ -79,19 +84,29 @@ export default function DashboardLayout({
     { href: "/dashboard/ai-tools", icon: Bot, label: "AI Tools" },
   ];
   
-  const aiTools = [
-    { href: "/dashboard/forecasting", icon: Bot, label: "Material Forecasting" },
-    { href: "/dashboard/waste-reduction", icon: SlidersHorizontal, label: "Waste Reduction" },
-    { href: "/dashboard/voice-reporting", icon: Voicemail, label: "Voice Reporting" },
-    { href: "/dashboard/defect-detection", icon: HardHat, label: "Defect Detection" },
-    { href: "/dashboard/compliance", icon: CheckCheck, label: "Compliance Checks" },
+  const entryGuardNavLinks = [
+      { href: "/dashboard/materials", icon: Package, label: "Inventory"},
+  ];
+
+  const salesRepNavLinks = [
+      { href: "/dashboard/crm", icon: Briefcase, label: "CRM"},
   ];
 
   const getActiveLinkClasses = (href: string) => {
     return pathname === href ? "text-primary" : "text-muted-foreground";
   };
   
-  const navLinks = userRole === 'owner' ? ownerNavLinks : siteManagerNavLinks;
+  const getNavLinks = () => {
+      switch(userRole) {
+          case 'owner': return ownerNavLinks;
+          case 'sitemanager': return siteManagerNavLinks;
+          case 'entryguard': return entryGuardNavLinks;
+          case 'salesrep': return salesRepNavLinks;
+          default: return [];
+      }
+  }
+  
+  const navLinks = getNavLinks();
 
   return (
     <div className="flex flex-col min-h-screen w-full">
@@ -101,7 +116,7 @@ export default function DashboardLayout({
         </main>
       {/* Bottom Navigation for Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t z-50">
-        <div className="grid h-16 grid-cols-4 items-center justify-items-center">
+        <div className={`grid h-16 grid-cols-${navLinks.length || 1} items-center justify-items-center`}>
             {navLinks.map((link) => (
                 <Link
                 key={link.href}

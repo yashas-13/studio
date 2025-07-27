@@ -23,6 +23,10 @@ export function LoginForm() {
       router.push('/dashboard/owner');
     } else if (role === 'sitemanager') {
       router.push('/dashboard');
+    } else if (role === 'entryguard') {
+      router.push('/dashboard/materials');
+    } else if (role === 'salesrep') {
+      router.push('/dashboard/crm');
     }
   };
 
@@ -47,6 +51,8 @@ export function LoginForm() {
                 <SelectContent>
                   <SelectItem value="sitemanager">Site Manager</SelectItem>
                   <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="entryguard">Entry Guard</SelectItem>
+                  <SelectItem value="salesrep">Sales Representative</SelectItem>
                 </SelectContent>
               </Select>
             </div>

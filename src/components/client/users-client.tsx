@@ -52,7 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 interface User {
   id: string;
   name: string;
-  role: 'sitemanager' | 'owner';
+  role: 'sitemanager' | 'owner' | 'entryguard' | 'salesrep';
   email: string;
 }
 
@@ -219,6 +219,8 @@ export function UsersClient() {
                     <SelectContent>
                         <SelectItem value="sitemanager">Site Manager</SelectItem>
                         <SelectItem value="owner">Owner</SelectItem>
+                        <SelectItem value="entryguard">Entry Guard</SelectItem>
+                        <SelectItem value="salesrep">Sales Representative</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

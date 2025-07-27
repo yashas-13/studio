@@ -37,7 +37,6 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { ConstructWiseLogo } from "@/components/icons";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 
 export default function DashboardLayout({
   children,
@@ -48,25 +47,22 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     const role = localStorage.getItem('userRole');
     if (!role) {
       router.push('/login');
     } else {
       setUserRole(role);
-      // Redirect if user is on the wrong dashboard
+      // Basic redirection logic, can be expanded
       if (role === 'owner' && !pathname.startsWith('/dashboard/owner')) {
-        // Allow access to file sharing and CRM for owner
-        if (!pathname.startsWith('/dashboard/file-sharing') && !pathname.startsWith('/dashboard/users') && !pathname.startsWith('/dashboard/crm')) {
-           // router.push('/dashboard/owner');
+         if (!pathname.startsWith('/dashboard/file-sharing') && !pathname.startsWith('/dashboard/users') && !pathname.startsWith('/dashboard/crm')) {
+            // router.push('/dashboard/owner');
         }
-      } else if (role === 'sitemanager' && (pathname.startsWith('/dashboard/owner') || pathname.startsWith('/dashboard/crm'))) {
+      } else if (role === 'sitemanager' && pathname.startsWith('/dashboard/owner')) {
         router.push('/dashboard');
-      } else if (role === 'entryguard' && !pathname.startsWith('/dashboard/materials')) {
-        if (pathname !== '/dashboard') router.push('/dashboard/materials');
-      } else if (role === 'salesrep' && !pathname.startsWith('/dashboard/crm')) {
-        router.push('/dashboard/crm');
       }
     }
   }, [pathname, router]);
@@ -107,35 +103,28 @@ export default function DashboardLayout({
   const navLinks = getNavLinks();
 
   return (
-    <SidebarProvider>
-        <div className="flex flex-col min-h-screen w-full">
-            <DashboardHeader />
-            <div className="flex flex-1">
-                <div className="hidden md:block">
-                    <Sidebar>
-                        <SidebarContent>
-                        <SidebarMenu>
-                            {navLinks.map((link) => (
-                            <SidebarMenuItem key={link.href}>
-                                <Link href={link.href}>
-                                <SidebarMenuButton
-                                    isActive={pathname === link.href}
-                                >
-                                    <link.icon />
-                                    {link.label}
-                                </SidebarMenuButton>
-                                </Link>
-                            </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                        </SidebarContent>
-                    </Sidebar>
-                </div>
-                <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-background">
-                    {children}
-                </main>
+    <div className="flex flex-col min-h-screen w-full">
+      <DashboardHeader />
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-background pb-20 md:pb-6">
+          {children}
+        </main>
+      
+      {isClient && (
+        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t z-50 md:hidden">
+            <div className="flex h-16 items-center justify-around">
+                {navLinks.map((link) => (
+                    <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex flex-col items-center gap-1 text-xs ${pathname === link.href ? 'text-primary' : 'text-muted-foreground'}`}
+                    >
+                        <link.icon className="h-5 w-5" />
+                        {link.label}
+                    </Link>
+                ))}
             </div>
-        </div>
-    </SidebarProvider>
+        </nav>
+      )}
+    </div>
   );
 }

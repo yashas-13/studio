@@ -35,10 +35,11 @@ export default function ProjectUsagePage() {
                 const docRef = doc(db, 'projects', id);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    setProject({ id: docSnap.id, ...docSnap.data() } as Project);
+                    const projectData = { id: docSnap.id, ...docSnap.data() } as Project;
+                    setProject(projectData);
                     
                     // Fetch usage logs once project is loaded
-                    const q = query(collection(db, "usageLogs"), where("project", "==", (docSnap.data() as Project).name));
+                    const q = query(collection(db, "usageLogs"), where("project", "==", projectData.name));
                     const unsubscribe = onSnapshot(q, (querySnapshot) => {
                         const logsData: UsageLog[] = [];
                         querySnapshot.forEach((doc) => {

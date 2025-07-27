@@ -62,8 +62,8 @@ export default function DashboardLayout({
   const ownerNavLinks = [
     { href: "/dashboard/owner", icon: Shield, label: "Owner's View" },
     { href: "/dashboard/owner/projects", icon: GanttChartSquare, label: "Projects" },
+    { href: "/dashboard/owner/materials", icon: Package, label: "Materials" },
     { href: "/dashboard/users", icon: Users, label: "Users" },
-    { href: "/dashboard/file-sharing", icon: FileArchive, label: "Files" },
     { href: "/dashboard/owner/sales", icon: Briefcase, label: "Sales" },
   ];
 

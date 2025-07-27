@@ -14,6 +14,7 @@ import { ArrowLeft, Mail, User, Shield, Activity, Users, CheckCircle, DollarSign
 import { type Lead } from '../../crm/page';
 import { type Project } from '../../owner/projects/page';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import Link from 'next/link';
 
 interface UserProfile {
   id: string;
@@ -155,7 +156,9 @@ export default function UserProfilePage() {
                          <p className="text-xs text-muted-foreground pt-2">Manages the following projects:</p>
                          <div className="space-y-2">
                              {projects.length > 0 ? projects.map(p => (
-                                 <div key={p.id} className="text-sm p-2 bg-muted rounded-md cursor-pointer hover:bg-muted/80" onClick={() => router.push(`/dashboard/owner/projects/${p.id}`)}>{p.name}</div>
+                                <Link href={`/dashboard/owner/projects/${p.id}`} key={p.id}>
+                                  <div className="text-sm p-2 bg-muted rounded-md cursor-pointer hover:bg-muted/80">{p.name}</div>
+                                </Link>
                              )) : <p className="text-xs text-muted-foreground">No projects assigned.</p>}
                          </div>
                     </CardContent>

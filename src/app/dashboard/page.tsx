@@ -64,6 +64,20 @@ interface Project {
   name: string;
 }
 
+const sampleUsers = [
+    { name: "Sanjay Sharma", email: "sanjay.sharma@example.com", role: 'sitemanager' },
+    { name: "Aditya Verma", email: "aditya.verma@example.com", role: 'owner' },
+    { name: "Rajesh Gupta", email: "rajesh.gupta@example.com", role: 'entryguard' },
+    { name: "Anjali Sharma", email: "anjali.sharma@example.com", role: 'salesrep' },
+    { name: "Rohan Kumar", email: "rohan.kumar@example.com", role: 'salesrep' },
+];
+
+const sampleProjects = [
+    { name: "Downtown Tower", description: "45-story high-rise commercial building.", location: "Mumbai, MH", siteEngineer: "Sanjay Sharma", status: 'In Progress', budget: 50000000, spent: 25000000, progress: 50, createdAt: new Date() },
+    { name: "North Bridge", description: "Suspension bridge construction over the river.", location: "Delhi, DL", siteEngineer: "Sanjay Sharma", status: 'Planning', budget: 120000000, spent: 5000000, progress: 5, createdAt: new Date() },
+    { name: "Suburb Complex", description: "Residential complex with 5 towers.", location: "Bengaluru, KA", siteEngineer: "Sanjay Sharma", status: 'Completed', budget: 80000000, spent: 78000000, progress: 100, createdAt: new Date() },
+];
+
 const sampleMaterials = [
     { name: "Ready-Mix Concrete", quantity: 50, unit: "m³", supplier: "CEMEX", status: "Delivered", project: "Downtown Tower", lastUpdated: new Date().toISOString() },
     { name: "Steel Rebar", quantity: 10, unit: "tons", supplier: "Gerdau", status: "Pending", project: "North Bridge", lastUpdated: new Date().toISOString() },
@@ -129,6 +143,25 @@ export default function Dashboard() {
   const seedDatabase = async () => {
     try {
         let seededCount = 0;
+        
+        for (const user of sampleUsers) {
+            const q = query(collection(db, "users"), where("email", "==", user.email));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                await addDoc(collection(db, "users"), user);
+                seededCount++;
+            }
+        }
+        
+        for (const project of sampleProjects) {
+            const q = query(collection(db, "projects"), where("name", "==", project.name));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                await addDoc(collection(db, "projects"), project);
+                seededCount++;
+            }
+        }
+
         for (const material of sampleMaterials) {
             const q = query(collection(db, "materials"), where("name", "==", material.name), where("project", "==", material.project));
             const snap = await getDocs(q);
@@ -375,5 +408,7 @@ export default function Dashboard() {
     </>
   );
 }
+
+    
 
     

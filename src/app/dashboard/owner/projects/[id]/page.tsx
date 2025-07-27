@@ -14,7 +14,7 @@ import {
   User,
   ListTodo,
   Construction,
-  GalleryVertical,
+  FileArchive,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -165,7 +165,7 @@ export default function ProjectDetailsPage() {
                     </Button>
                     <Button asChild variant="outline" className="w-full justify-start gap-2">
                         <Link href={`/dashboard/owner/projects/${project.id}/files`}>
-                            <GalleryVertical /> Photo Gallery
+                            <FileArchive /> Files & Photos
                         </Link>
                     </Button>
                 </CardContent>

@@ -19,6 +19,7 @@ interface ProjectFile {
     url: string;
     size: string;
     date: string;
+    projectId: string;
 }
 
 export default function ProjectFilesPage() {
@@ -67,7 +68,7 @@ export default function ProjectFilesPage() {
                 <CardHeader>
                     <CardTitle>Photo Gallery</CardTitle>
                     <CardDescription>
-                        Images uploaded for this project.
+                        Images uploaded for this project, such as site progress photos.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -79,7 +80,7 @@ export default function ProjectFilesPage() {
                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {imageFiles.map(file => (
                                 <div key={file.id} className="relative aspect-square group">
-                                    <Image src={file.url || `https://placehold.co/400x400.png`} alt={file.name} layout="fill" className="object-cover rounded-lg" data-ai-hint="construction site" />
+                                    <Image src={file.url || `https://placehold.co/400x400.png`} alt={file.name} layout="fill" className="object-cover rounded-lg" data-ai-hint="construction site progress" />
                                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2 text-xs rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
                                         {file.name}
                                     </div>
@@ -96,7 +97,7 @@ export default function ProjectFilesPage() {
                 <CardHeader>
                     <CardTitle>Documents</CardTitle>
                     <CardDescription>
-                        Documents and other files related to this project.
+                        Blueprints, permits, and other files related to this project.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -112,7 +113,7 @@ export default function ProjectFilesPage() {
                                 <TableHead>File Name</TableHead>
                                 <TableHead>Type</TableHead>
                                 <TableHead className="text-right">Size</TableHead>
-                                <TableHead className="text-right">Date</TableHead>
+                                <TableHead className="text-right">Date Uploaded</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

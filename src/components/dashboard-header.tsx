@@ -31,6 +31,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "./ui/badge";
 import { ConstructWiseLogo } from "./icons";
+import { SidebarTrigger } from "./ui/sidebar";
 
 export function DashboardHeader() {
   const router = useRouter();
@@ -42,14 +43,17 @@ export function DashboardHeader() {
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6 sticky top-0 z-40">
-      <div className="flex-1 md:hidden">
+       <div className="flex items-center gap-2">
+            <div className="md:hidden">
+                <SidebarTrigger />
+            </div>
           <Link href="/" className="flex items-center gap-2 font-semibold text-primary">
             <ConstructWiseLogo className="h-6 w-6" />
-            <span className="">ConstructWise</span>
+            <span className="hidden md:inline-block">ConstructWise</span>
           </Link>
       </div>
 
-      <div className="w-full flex-1 hidden md:block">
+      <div className="w-full flex-1">
         <form>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -63,10 +67,6 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Search className="h-5 w-5" />
-          <span className="sr-only">Search</span>
-        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="icon" className="rounded-full">

@@ -37,6 +37,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { ConstructWiseLogo } from "@/components/icons";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 
 export default function DashboardLayout({
   children,
@@ -47,10 +48,8 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     const role = localStorage.getItem('userRole');
     if (!role) {
       router.push('/login');
@@ -94,10 +93,6 @@ export default function DashboardLayout({
   const salesRepNavLinks = [
       { href: "/dashboard/crm", icon: Briefcase, label: "CRM"},
   ];
-
-  const getActiveLinkClasses = (href: string) => {
-    return pathname === href ? "text-primary" : "text-muted-foreground";
-  };
   
   const getNavLinks = () => {
       switch(userRole) {
@@ -112,28 +107,35 @@ export default function DashboardLayout({
   const navLinks = getNavLinks();
 
   return (
-    <div className="flex flex-col min-h-screen w-full">
-      <DashboardHeader />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-background pb-20">
-          {children}
-        </main>
-      {/* Bottom Navigation for Mobile */}
-      {isClient && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t z-50 md:hidden">
-          <div className="flex h-16 items-center justify-around">
-              {navLinks.map((link) => (
-                  <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex flex-col items-center gap-1.5 p-2 transition-all hover:text-primary ${getActiveLinkClasses(link.href)}`}
-                  >
-                  <link.icon className="h-5 w-5" />
-                  <span className="text-xs font-medium">{link.label}</span>
-                  </Link>
-              ))}
-          </div>
-        </nav>
-      )}
-    </div>
+    <SidebarProvider>
+        <div className="flex flex-col min-h-screen w-full">
+            <DashboardHeader />
+            <div className="flex flex-1">
+                <div className="hidden md:block">
+                    <Sidebar>
+                        <SidebarContent>
+                        <SidebarMenu>
+                            {navLinks.map((link) => (
+                            <SidebarMenuItem key={link.href}>
+                                <Link href={link.href}>
+                                <SidebarMenuButton
+                                    isActive={pathname === link.href}
+                                >
+                                    <link.icon />
+                                    {link.label}
+                                </SidebarMenuButton>
+                                </Link>
+                            </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                        </SidebarContent>
+                    </Sidebar>
+                </div>
+                <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-background">
+                    {children}
+                </main>
+            </div>
+        </div>
+    </SidebarProvider>
   );
 }

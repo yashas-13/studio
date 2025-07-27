@@ -31,7 +31,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useState } from "react";
 import { db, collection, addDoc, onSnapshot, doc, deleteDoc, serverTimestamp, query, orderBy } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -82,7 +81,7 @@ export default function CrmPage() {
       await addDoc(collection(db, "leads"), {
         ...newLead,
         status: "New",
-        assignedTo: "Sales Rep", // Placeholder
+        assignedTo: "Sales Rep", // Placeholder, ideally this would be the logged in user's name
         createdAt: serverTimestamp(),
       });
       toast({ title: "Success", description: "New lead added." });
@@ -95,7 +94,13 @@ export default function CrmPage() {
   };
   
   const handleDeleteLead = async (id: string) => {
-    await deleteDoc(doc(db, "leads", id));
+    try {
+      await deleteDoc(doc(db, "leads", id));
+      toast({title: "Success", description: "Lead deleted."});
+    } catch (error) {
+      console.error("Error deleting lead:", error);
+      toast({title: "Error", description: "Could not delete lead.", variant: "destructive"});
+    }
   }
   
   const getStatusVariant = (status: Lead['status']): "secondary" | "outline" | "default" | "destructive" => {
@@ -188,15 +193,15 @@ export default function CrmPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">Name</Label>
-              <Input id="name" value={newLead.name} onChange={(e) => handleInputChange('name', e.target.value)} className="col-span-3" />
+              <Input id="name" value={newLead.name} onChange={(e) => handleInputChange('name', e.target.value)} className="col-span-3" placeholder="e.g., John Doe" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">Email</Label>
-              <Input id="email" type="email" value={newLead.email} onChange={(e) => handleInputChange('email', e.target.value)} className="col-span-3" />
+              <Input id="email" type="email" value={newLead.email} onChange={(e) => handleInputChange('email', e.target.value)} className="col-span-3" placeholder="e.g., john.doe@example.com" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="phone" className="text-right">Phone</Label>
-              <Input id="phone" value={newLead.phone} onChange={(e) => handleInputChange('phone', e.target.value)} className="col-span-3" />
+              <Input id="phone" value={newLead.phone} onChange={(e) => handleInputChange('phone', e.target.value)} className="col-span-3" placeholder="e.g., +1 234 567 890" />
             </div>
           </div>
           <DialogFooter>

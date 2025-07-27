@@ -13,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import { PropertySchema } from '@/lib/types';
 import {z} from 'genkit';
 
-export const PropertyRecommendationInputSchema = z.object({
+const PropertyRecommendationInputSchema = z.object({
   requirements: z
     .string()
     .describe(

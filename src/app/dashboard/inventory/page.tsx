@@ -50,9 +50,12 @@ export default function InventoryPage() {
     if (selectedProject === 'all') {
       setFilteredProperties(properties);
     } else {
-      setFilteredProperties(properties.filter(p => p.project === selectedProject));
+      const selectedProjectName = projects.find(p => p.id === selectedProject)?.name;
+      if (selectedProjectName) {
+        setFilteredProperties(properties.filter(p => p.project === selectedProjectName));
+      }
     }
-  }, [selectedProject, properties]);
+  }, [selectedProject, properties, projects]);
 
   const getStatusVariant = (status: Property['status']) => {
     switch (status) {
@@ -93,7 +96,7 @@ export default function InventoryPage() {
             <SelectContent>
               <SelectItem value="all">All Projects</SelectItem>
               {projects.map(p => (
-                <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>

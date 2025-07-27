@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DollarSign, Users, TrendingUp } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { type Lead } from "../../crm/page";
 
@@ -31,17 +31,6 @@ export default function SalesAnalyticsPage() {
     const [aggregatedReps, setAggregatedReps] = useState<SalesRep[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Effect for fetching leads
-    useEffect(() => {
-        const leadsUnsub = onSnapshot(collection(db, "leads"), (snapshot) => {
-            const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
-            setLeads(leadsData);
-            setLoading(false);
-        });
-        return () => leadsUnsub();
-    }, []);
-
-    // Effect for fetching sales reps
     useEffect(() => {
         const usersQuery = query(collection(db, "users"), where("role", "==", "salesrep"));
         const repsUnsub = onSnapshot(usersQuery, (snapshot) => {
@@ -51,30 +40,42 @@ export default function SalesAnalyticsPage() {
                 email: doc.data().email,
             })) as RawSalesRep[];
             setRawSalesReps(repsData);
-            setLoading(false);
-        });
-        return () => repsUnsub();
+        }, () => setLoading(false)); // Also set loading false on error or empty
+
+        const leadsUnsub = onSnapshot(collection(db, "leads"), (snapshot) => {
+            const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
+            setLeads(leadsData);
+        }, () => setLoading(false)); // Also set loading false on error or empty
+
+        return () => {
+          repsUnsub();
+          leadsUnsub();
+        };
     }, []);
-    
-    // Effect for aggregating data when either leads or rawReps change
+
     useEffect(() => {
-        if (leads.length > 0 && rawSalesReps.length > 0) {
+        if (rawSalesReps.length > 0) {
             const repsData = rawSalesReps.map(rep => {
                 const assignedLeads = leads.filter(lead => lead.assignedTo === rep.name);
-                const closedLeads = assignedLeads.filter(lead => lead.status === 'Booked'); // Assuming qualified = closed for demo
+                const closedLeads = assignedLeads.filter(lead => lead.status === 'Booked');
+                
+                // Calculate revenue from closed leads that have a price
+                const revenue = closedLeads.reduce((acc, lead) => acc + (lead.price || 0), 0);
+
                 return {
                     ...rep,
                     leads: assignedLeads.length,
-                    closed: closedLeads.length, 
-                    revenue: closedLeads.length * 750000, // Placeholder calculation
+                    closed: closedLeads.length,
+                    revenue: revenue,
                 };
             });
             setAggregatedReps(repsData);
-        } else if (rawSalesReps.length > 0) {
-            // Handle case where there are reps but no leads yet
-            setAggregatedReps(rawSalesReps.map(r => ({ ...r, leads: 0, closed: 0, revenue: 0 })));
+            setLoading(false); // Data is processed
+        } else if (!loading) { // If still loading, wait. If not loading and no reps, set empty.
+             setAggregatedReps([]);
+             setLoading(false);
         }
-    }, [leads, rawSalesReps]);
+    }, [leads, rawSalesReps, loading]);
 
 
     const totalLeads = aggregatedReps.reduce((acc, rep) => acc + rep.leads, 0);
@@ -153,7 +154,7 @@ export default function SalesAnalyticsPage() {
                                 <TableRow>
                                     <TableCell colSpan={4} className="h-24 text-center">Loading performance data...</TableCell>
                                 </TableRow>
-                            ) : (
+                            ) : aggregatedReps.length > 0 ? (
                                 aggregatedReps.map(rep => (
                                     <TableRow key={rep.email}>
                                         <TableCell>
@@ -173,6 +174,10 @@ export default function SalesAnalyticsPage() {
                                         <TableCell className="text-right font-semibold">₹{rep.revenue.toLocaleString('en-IN')}</TableCell>
                                     </TableRow>
                                 ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">No sales data to display.</TableCell>
+                                </TableRow>
                             )}
                         </TableBody>
                     </Table>

@@ -17,6 +17,7 @@ export interface Lead {
   requirements: string;
   projectId?: string;
   projectName?: string;
+  price?: number;
 }
 
 export default function CrmPage() {

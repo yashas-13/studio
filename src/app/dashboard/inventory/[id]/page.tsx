@@ -87,6 +87,14 @@ export default function PropertyDetailsPage() {
             bookedByLeadId: leadId,
             bookedByLeadName: leadName,
         });
+
+        // Also update the lead's status to "Booked"
+        const leadRef = doc(db, "leads", leadId);
+        await updateDoc(leadRef, {
+            status: "Booked",
+            price: property.price // Capture the price at the time of booking
+        });
+        
         toast({ title: "Unit Blocked", description: `Unit ${property.unitNumber} has been booked for ${leadName}.`});
         setIsBlockDialogOpen(false);
     } catch (error) {

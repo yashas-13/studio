@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { MapPin } from "lucide-react";
+import Link from "next/link";
 
 interface ProjectBoardProps {
   projects: Project[];
@@ -18,28 +19,30 @@ const columns: Project['status'][] = ["Planning", "In Progress", "Completed"];
 export function ProjectBoard({ projects, loading }: ProjectBoardProps) {
 
   const renderProjectCard = (project: Project) => (
-    <Card key={project.id} className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">{project.name}</CardTitle>
-        <div className="flex items-center text-xs text-muted-foreground pt-1">
-            <MapPin className="h-3 w-3 mr-1" />
-            {project.location}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">{project.description}</p>
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                 <Avatar className="h-6 w-6">
-                    <AvatarImage src={`https://i.pravatar.cc/40?u=${project.siteEngineer}`} />
-                    <AvatarFallback>{project.siteEngineer.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span className="text-xs">{project.siteEngineer}</span>
-            </div>
-            <Badge variant="secondary">{project.status}</Badge>
-        </div>
-      </CardContent>
-    </Card>
+    <Link href={`/dashboard/owner/projects/${project.id}`} key={project.id}>
+      <Card className="mb-4 hover:bg-muted/50 transition-colors">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium">{project.name}</CardTitle>
+          <div className="flex items-center text-xs text-muted-foreground pt-1">
+              <MapPin className="h-3 w-3 mr-1" />
+              {project.location}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground truncate">{project.description}</p>
+          <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                   <Avatar className="h-6 w-6">
+                      <AvatarImage src={`https://i.pravatar.cc/40?u=${project.siteEngineer}`} />
+                      <AvatarFallback>{project.siteEngineer.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs">{project.siteEngineer}</span>
+              </div>
+              <Badge variant="secondary">{project.status}</Badge>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 
   const renderSkeleton = () => (

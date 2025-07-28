@@ -183,7 +183,8 @@ export function UsageClient() {
                 {logs.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">
-                        {item.materialName ? `${item.materialName} (${item.project || 'N/A'})` : 'N/A'}
+                        <div className="font-medium">{item.materialName}</div>
+                        <div className="text-sm text-muted-foreground">{item.project}</div>
                     </TableCell>
                     <TableCell>{`${item.quantity ?? 0} ${item.unit ?? ''}`.trim()}</TableCell>
                     <TableCell className="hidden md:table-cell">{item.area}</TableCell>

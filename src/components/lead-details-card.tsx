@@ -148,7 +148,7 @@ export default function LeadDetailsCard({ lead }: LeadDetailsCardProps) {
                 </div>
                  {isEditing && (
                     <Button onClick={handleSave} className="w-full mt-4">
-                        <Save className="mr-2" />
+                        <Save className="mr-2 h-4 w-4" />
                         Save Changes
                     </Button>
                 )}

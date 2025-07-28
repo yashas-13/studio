@@ -1,54 +1,83 @@
 
 "use client"
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { GanttChartSquare, Milestone, Package } from "lucide-react";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { type Project } from "../owner/projects/page";
 
-const timelineData = {
-  startDate: new Date("2024-07-01"),
-  endDate: new Date("2024-09-30"),
-  phases: [
-    { id: 1, name: "Phase 1: Foundation", start: "2024-07-01", end: "2024-07-20", color: "bg-blue-500" },
-    { id: 2, name: "Phase 2: Superstructure", start: "2024-07-21", end: "2024-08-15", color: "bg-green-500" },
-    { id: 3, name: "Phase 3: MEP & Interiors", start: "2024-08-16", end: "2024-09-10", color: "bg-yellow-500" },
-    { id: 4, name: "Phase 4: Handover", start: "2024-09-11", end: "2024-09-30", color: "bg-purple-500" },
-  ],
-  milestones: [
-    { id: 1, name: "Site Clearance", date: "2024-07-05", icon: Milestone },
-    { id: 2, name: "Concrete Delivery", date: "2024-07-10", icon: Package },
-    { id: 3, name: "Structure Inspection", date: "2024-08-14", icon: Milestone },
-    { id: 4, name: "Final Inspection", date: "2024-09-25", icon: Milestone },
-  ],
-};
+interface Task {
+    id: string;
+    name: string;
+    status: 'To-Do' | 'In Progress' | 'Done';
+    dueDate: string;
+    assignee: string;
+    projectId: string;
+}
 
 const getDaysDifference = (start: Date, end: Date) => {
   return (end.getTime() - start.getTime()) / (1000 * 3600 * 24);
 };
 
 export default function TimelinePage() {
-  const totalDays = getDaysDifference(timelineData.startDate, timelineData.endDate);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  
+  useEffect(() => {
+    const unsubProjects = onSnapshot(collection(db, "projects"), (snapshot) => {
+      setProjects(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Project)));
+    });
+    const unsubTasks = onSnapshot(collection(db, "tasks"), (snapshot) => {
+      setTasks(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Task)));
+    });
+    return () => {
+      unsubProjects();
+      unsubTasks();
+    }
+  }, []);
+
+  // For demonstration, we'll create a timeline for the first "In Progress" project
+  const project = projects.find(p => p.status === 'In Progress');
+
+  if (!project) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center">
+          <h1 className="text-lg font-semibold md:text-2xl">Project Timeline</h1>
+        </div>
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            No "In Progress" projects to display a timeline for.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const projectTasks = tasks.filter(t => t.projectId === project.id);
+  const startDate = project.createdAt ? project.createdAt.toDate() : new Date();
+  // Simplified end date logic
+  const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 3, startDate.getDate());
+
+  const totalDays = getDaysDifference(startDate, endDate);
 
   const calculatePosition = (dateStr: string) => {
     const date = new Date(dateStr);
-    const daysFromStart = getDaysDifference(timelineData.startDate, date);
+    const daysFromStart = getDaysDifference(startDate, date);
     return (daysFromStart / totalDays) * 100;
   };
-
-  const calculateWidth = (startStr: string, endStr: string) => {
-    const start = new Date(startStr);
-    const end = new Date(endStr);
-    const duration = getDaysDifference(start, end);
-    return (duration / totalDays) * 100;
-  };
-
+  
   const months = [];
-  let currentDate = new Date(timelineData.startDate);
-  while (currentDate <= timelineData.endDate) {
+  let currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
     months.push(new Date(currentDate));
     currentDate.setMonth(currentDate.getMonth() + 1);
   }
+
 
   return (
     <div className="flex flex-col gap-4">
@@ -60,8 +89,10 @@ export default function TimelinePage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Downtown Tower Project</CardTitle>
-          <CardDescription>July 2024 - September 2024</CardDescription>
+          <CardTitle>{project.name}</CardTitle>
+          <CardDescription>
+            {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+          </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="relative">
@@ -82,41 +113,21 @@ export default function TimelinePage() {
             </div>
             
             <Separator className="my-4" />
-
-            {/* Phases */}
-            <div className="space-y-4">
-              {timelineData.phases.map(phase => (
-                <div key={phase.id}>
-                  <p className="text-sm font-medium mb-2">{phase.name}</p>
-                  <div className="relative h-8 w-full rounded-lg bg-muted">
-                    <div
-                      className={`${phase.color} absolute h-full rounded-lg`}
-                      style={{
-                        left: `${calculatePosition(phase.start)}%`,
-                        width: `${calculateWidth(phase.start, phase.end)}%`,
-                      }}
-                      title={`${phase.name}: ${phase.start} to ${phase.end}`}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Separator className="my-4" />
             
-            {/* Milestones */}
-            <div className="relative h-8 w-full">
-              {timelineData.milestones.map(milestone => (
+            {/* Milestones / Tasks */}
+            <div className="relative h-20 w-full">
+              {projectTasks.map(task => (
                  <div
-                    key={milestone.id}
+                    key={task.id}
                     className="absolute top-0 -translate-x-1/2"
-                    style={{ left: `${calculatePosition(milestone.date)}%` }}
-                    title={`${milestone.name}: ${milestone.date}`}
+                    style={{ left: `${calculatePosition(task.dueDate)}%` }}
+                    title={`${task.name}: ${task.dueDate}`}
                   >
-                   <milestone.icon className="h-5 w-5 text-accent" />
-                   <p className="text-xs whitespace-nowrap mt-1">{milestone.name}</p>
+                   <Milestone className="h-5 w-5 text-accent" />
+                   <p className="text-xs whitespace-nowrap mt-1">{task.name}</p>
                  </div>
               ))}
+               {projectTasks.length === 0 && <p className="text-center text-sm text-muted-foreground">No tasks (milestones) for this project yet.</p>}
             </div>
 
           </div>

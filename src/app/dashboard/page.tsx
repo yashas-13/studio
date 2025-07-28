@@ -86,10 +86,10 @@ const sampleMaterials = [
 ];
 
 const sampleLeads = [
-    { name: "Rohan Verma", email: "rohan.verma@email.com", phone: "+919876543210", status: "New", assignedTo: "Anjali Sharma", requirements: "3BHK with park view", createdAt: serverTimestamp() },
-    { name: "Priya Desai", email: "priya.desai@email.com", phone: "+919123456789", status: "Contacted", assignedTo: "Rohan Kumar", requirements: "Looking for a penthouse", createdAt: serverTimestamp() },
-    { name: "Amit Patel", email: "amit.patel@email.com", phone: "+919988776655", status: "Qualified", assignedTo: "Anjali Sharma", requirements: "Wants to book a 2BHK immediately", createdAt: serverTimestamp() },
-    { name: "Sunita Reddy", email: "sunita.reddy@email.com", phone: "+919654321098", status: "Lost", assignedTo: "Rohan Kumar", requirements: "Budget constraints", createdAt: serverTimestamp() }
+    { name: "Rohan Verma", email: "rohan.verma@email.com", phone: "+919876543210", status: "Warm", assignedTo: "Anjali Sharma", requirements: "3BHK with park view", createdAt: serverTimestamp() },
+    { name: "Priya Desai", email: "priya.desai@email.com", phone: "+919123456789", status: "Hot", assignedTo: "Rohan Kumar", requirements: "Looking for a penthouse", createdAt: serverTimestamp() },
+    { name: "Amit Patel", email: "amit.patel@email.com", phone: "+919988776655", status: "Hot", assignedTo: "Anjali Sharma", requirements: "Wants to book a 2BHK immediately", createdAt: serverTimestamp() },
+    { name: "Sunita Reddy", email: "sunita.reddy@email.com", phone: "+919654321098", status: "Cold", assignedTo: "Rohan Kumar", requirements: "Budget constraints", createdAt: serverTimestamp() }
 ];
 
 const sampleProperties = [
@@ -116,6 +116,9 @@ export default function Dashboard() {
   const [recentUsage, setRecentUsage] = useState<UsageLog[]>([]);
   const [projectCount, setProjectCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [overdueTasksCount, setOverdueTasksCount] = useState(0);
+  const [activeProjects, setActiveProjects] = useState<Project[]>([]);
+
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -145,16 +148,30 @@ export default function Dashboard() {
         setLowStockCount(lowStock);
     });
 
-    const qProjects = collection(db, "projects");
+    const qProjects = query(collection(db, "projects"));
     const unsubscribeProjects = onSnapshot(qProjects, (snapshot) => {
         setProjectCount(snapshot.size);
+        const active = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project)).filter(p => p.status === 'In Progress');
+        setActiveProjects(active);
     });
+    
+    const qTasks = query(collection(db, 'tasks'), where('status', '!=', 'Done'));
+    const unsubscribeTasks = onSnapshot(qTasks, (snapshot) => {
+        const now = new Date();
+        const overdue = snapshot.docs.filter(doc => {
+            const dueDate = new Date(doc.data().dueDate);
+            return dueDate < now;
+        }).length;
+        setOverdueTasksCount(overdue);
+    });
+
 
     return () => {
         unsubscribeMaterials();
         unsubscribeUsage();
         unsubscribeAllMaterials();
         unsubscribeProjects();
+        unsubscribeTasks();
     };
   }, [router]);
 
@@ -204,14 +221,18 @@ export default function Dashboard() {
             }
         }
         
-        for (const lead of sampleLeads) {
-            const q = query(collection(db, "leads"), where("email", "==", lead.email));
-            const snap = await getDocs(q);
-            if (snap.empty) {
-                await addDoc(collection(db, "leads"), lead);
-                seededCount++;
+        const leadDocs = await getDocs(collection(db, "leads"));
+        if(leadDocs.empty) {
+            for (const lead of sampleLeads) {
+                const q = query(collection(db, "leads"), where("email", "==", lead.email));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    await addDoc(collection(db, "leads"), lead);
+                    seededCount++;
+                }
             }
         }
+
 
         const towerDocs = await getDocs(collection(db, "towers"));
         if (towerDocs.empty) {
@@ -333,9 +354,9 @@ export default function Dashboard() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">{overdueTasksCount}</div>
             <p className="text-xs text-muted-foreground">
-              2 critical priority
+              Across all projects
             </p>
           </CardContent>
         </Card>
@@ -345,7 +366,7 @@ export default function Dashboard() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
+            <div className="text-2xl font-bold">{activeProjects.length}</div>
             <p className="text-xs text-muted-foreground">
               All sites operational
             </p>
@@ -398,7 +419,7 @@ export default function Dashboard() {
                         <TableCell>
                             <div className="font-medium">{delivery.name}</div>
                             <div className="hidden text-sm text-muted-foreground md:inline">
-                                {delivery.supplier}
+                                {delivery.project}
                             </div>
                         </TableCell>
                         <TableCell className="hidden xl:table-column">
@@ -410,7 +431,8 @@ export default function Dashboard() {
                         <TableCell className="hidden md:table-cell">
                            {new Date(delivery.lastUpdated).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="text-right">{`${delivery.quantity} ${delivery.unit}`}</TableCell>
+                        <TableCell className="text-right">{`${delivery.quantity} ${delivery.unit}`}
+                        </TableCell>
                     </TableRow>
                     ))
                 )}
@@ -418,40 +440,10 @@ export default function Dashboard() {
             </Table>
           </CardContent>
         </Card>
-        <div className="grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Daily Site Briefing</CardTitle>
-              <CardDescription>Key tasks and notes for today.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="flex items-start gap-4">
-                <div className="rounded-full bg-primary/10 p-2 text-primary">
-                  <ClipboardCheck className="h-5 w-5" />
-                </div>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Critical Tasks</p>
-                  <p className="text-sm text-muted-foreground">
-                    Concrete pour for Level 15 slab. Pre-pour inspection at 9 AM.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="rounded-full bg-destructive/10 p-2 text-destructive">
-                 <AlertTriangle className="h-5 w-5" />
-                </div>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Safety Focus</p>
-                  <p className="text-sm text-muted-foreground">
-                    High-wind advisory. Secure all loose materials. Full PPE required on all levels.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
+        <Card>
             <CardHeader>
               <CardTitle>Recent Site Updates</CardTitle>
+              <CardDescription>Real-time updates from site managers.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
               {recentUsage.length === 0 ? (
@@ -475,7 +467,6 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
-        </div>
       </div>
     </>
   );

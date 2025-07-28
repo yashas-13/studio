@@ -45,7 +45,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 import { type Lead } from "../crm/page";
-import { collection, onSnapshot, query, orderBy, limit, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, limit, addDoc, serverTimestamp, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { LeadAnalysisClient } from "@/components/client/lead-analysis-client";
@@ -59,16 +59,19 @@ interface ActivityFeedItem {
     leadName: string;
   }
   
-const upcomingFollowUps = [
-    { leadName: "Rohan Verma", task: "Call to discuss final quote", due: "1 day ago", status: "Overdue" },
-    { leadName: "Priya Desai", task: "Send floor plan options", due: "Today", status: "Today" },
-    { leadName: "Amit Patel", task: "Schedule site visit", due: "In 3 days", status: "Upcoming" },
-];
+interface FollowUpTask {
+    id: string;
+    leadName: string;
+    task: string;
+    due: string;
+    status: "Overdue" | "Today" | "Upcoming";
+}
 
 export default function SalesDashboardPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
+    const [upcomingFollowUps, setUpcomingFollowUps] = useState<FollowUpTask[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [userName, setUserName] = useState<string | null>(null);
@@ -86,7 +89,9 @@ export default function SalesDashboardPage() {
         const loggedInUserName = localStorage.getItem('userName');
         setUserName(loggedInUserName);
 
-        const qLeads = query(collection(db, "leads"), orderBy("createdAt", "desc"));
+        if (!loggedInUserName) return;
+
+        const qLeads = query(collection(db, "leads"), where("assignedTo", "==", loggedInUserName), orderBy("createdAt", "desc"));
         const unsubscribeLeads = onSnapshot(qLeads, (snapshot) => {
           const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Lead[];
           setLeads(leadsData);
@@ -99,7 +104,7 @@ export default function SalesDashboardPage() {
             setProjects(projectsData);
         });
     
-        const qActivity = query(collection(db, "leads"), orderBy("createdAt", "desc"), limit(5));
+        const qActivity = query(collection(db, "leads"), where("assignedTo", "==", loggedInUserName), orderBy("createdAt", "desc"), limit(5));
         const unsubscribeActivity = onSnapshot(qActivity, (snapshot) => {
           const feedData = snapshot.docs.map(doc => ({
             id: doc.id,
@@ -109,11 +114,39 @@ export default function SalesDashboardPage() {
           })) as ActivityFeedItem[];
           setActivityFeed(feedData);
         });
+        
+        // Mock follow-up data fetching from a 'tasks' collection for example
+        const qTasks = query(collection(db, "tasks"), where("assignee", "==", loggedInUserName), where("status", "!=", "Done"));
+        const unsubTasks = onSnapshot(qTasks, (snapshot) => {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            const followUps = snapshot.docs.map(doc => {
+                const taskData = doc.data();
+                const dueDate = new Date(taskData.dueDate);
+                let status: "Overdue" | "Today" | "Upcoming" = "Upcoming";
+                if (dueDate < today) {
+                    status = "Overdue";
+                } else if (dueDate.getTime() === today.getTime()) {
+                    status = "Today";
+                }
+
+                return {
+                    id: doc.id,
+                    leadName: taskData.leadName || 'N/A',
+                    task: taskData.name,
+                    due: dueDate.toLocaleDateString(),
+                    status: status,
+                }
+            });
+            setUpcomingFollowUps(followUps as FollowUpTask[]);
+        });
     
         return () => {
             unsubscribeLeads();
             unsubscribeProjects();
             unsubscribeActivity();
+            unsubTasks();
         };
       }, []);
 
@@ -247,7 +280,7 @@ export default function SalesDashboardPage() {
             <div className="grid gap-2">
               <CardTitle>Upcoming Follow-ups</CardTitle>
               <CardDescription>
-                Tasks and reminders to keep you on track. (Sample Data)
+                Tasks and reminders to keep you on track.
               </CardDescription>
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
@@ -268,8 +301,8 @@ export default function SalesDashboardPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {upcomingFollowUps.map((item, index) => (
-                    <TableRow key={index}>
+                    {upcomingFollowUps.map((item) => (
+                    <TableRow key={item.id}>
                         <TableCell>
                             <div className="font-medium">{item.leadName}</div>
                         </TableCell>
@@ -284,6 +317,11 @@ export default function SalesDashboardPage() {
                         </TableCell>
                     </TableRow>
                     ))}
+                    {upcomingFollowUps.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center">No upcoming follow-ups.</TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
             </Table>
           </CardContent>

@@ -102,7 +102,10 @@ export function UsersClient() {
   }
 
   const handleDelete = async (userId: string) => {
-    await deleteDoc(doc(db, "users", userId));
+    if (window.confirm("Are you sure you want to delete this user?")) {
+        await deleteDoc(doc(db, "users", userId));
+        toast({ title: "User Deleted" });
+    }
   }
 
   return (
@@ -173,7 +176,7 @@ export function UsersClient() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}`)}>View/Edit</DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => handleDelete(user.id)}

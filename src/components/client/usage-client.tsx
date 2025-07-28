@@ -39,13 +39,12 @@ export function UsageClient() {
   const [logs, setLogs] = useState<UsageLog[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>("");
   const [newLog, setNewLog] = useState({
     materialId: "",
     quantity: "",
     area: "",
     notes: "",
-    projectId: ""
   });
   const { toast } = useToast();
 
@@ -66,11 +65,6 @@ export function UsageClient() {
         materialsData.push({ id: doc.id, ...doc.data() } as Material);
       });
       setMaterials(materialsData);
-      
-      if (newLog.projectId) {
-          const projectMaterials = materialsData.filter(m => m.projectId === newLog.projectId);
-          setFilteredMaterials(projectMaterials);
-      }
     });
 
     const qProjects = collection(db, "projects");
@@ -83,12 +77,11 @@ export function UsageClient() {
       unsubscribeMaterials();
       unsubscribeProjects();
     };
-  }, [newLog.projectId]);
+  }, []);
 
   const handleProjectChange = (projectId: string) => {
-    setNewLog(prev => ({ ...prev, projectId: projectId, materialId: "" }));
-    const projectMaterials = materials.filter(m => m.projectId === projectId);
-    setFilteredMaterials(projectMaterials);
+    setSelectedProject(projectId);
+    setNewLog(prev => ({ ...prev, materialId: "" })); // Reset material selection
   };
 
   const handleInputChange = (name: string, value: string) => {
@@ -97,7 +90,7 @@ export function UsageClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLog.materialId || !newLog.quantity || !newLog.area || !newLog.projectId) {
+    if (!newLog.materialId || !newLog.quantity || !newLog.area || !selectedProject) {
       toast({ title: "Error", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
@@ -130,14 +123,14 @@ export function UsageClient() {
         lastUpdated: new Date().toISOString()
       });
 
-      const selectedProject = projects.find(p => p.id === newLog.projectId);
+      const projectData = projects.find(p => p.id === selectedProject);
 
       const usageLogPayload = {
         materialName: materialData.name,
         quantity: usedQuantity,
         unit: materialData.unit || '',
-        project: selectedProject?.name || 'N/A',
-        projectId: newLog.projectId,
+        project: projectData?.name || 'N/A',
+        projectId: selectedProject,
         area: newLog.area,
         notes: newLog.notes,
         date: new Date().toISOString(),
@@ -145,7 +138,7 @@ export function UsageClient() {
       }
       await addDoc(collection(db, "usageLogs"), usageLogPayload);
       
-      const activityDetail = `${usedQuantity} ${materialData.unit || ''} of ${materialData.name} used at ${selectedProject?.name} (${newLog.area}).`;
+      const activityDetail = `${usedQuantity} ${materialData.unit || ''} of ${materialData.name} used at ${projectData?.name} (${newLog.area}).`;
       await addDoc(collection(db, "activityFeed"), {
         type: 'MATERIAL_USAGE',
         user: 'Site Manager',
@@ -155,13 +148,15 @@ export function UsageClient() {
       
       toast({ title: "Success", description: "Usage logged and inventory updated." });
 
-      setNewLog({ materialId: "", quantity: "", area: "", notes: "", projectId: newLog.projectId });
+      setNewLog({ materialId: "", quantity: "", area: "", notes: ""});
 
     } catch (error) {
       console.error("Error logging usage: ", error);
       toast({ title: "Error", description: "Could not log usage.", variant: "destructive" });
     }
   };
+
+  const filteredMaterials = materials.filter(m => m.projectId === selectedProject);
 
   return (
     <div className="grid flex-1 items-start gap-4 lg:grid-cols-3 lg:gap-8">
@@ -215,7 +210,7 @@ export function UsageClient() {
               <div className="grid gap-6">
                  <div className="grid gap-3">
                   <Label htmlFor="project">Project</Label>
-                  <Select value={newLog.projectId} onValueChange={handleProjectChange}>
+                  <Select value={selectedProject} onValueChange={handleProjectChange}>
                     <SelectTrigger id="project" aria-label="Select project">
                       <SelectValue placeholder="Select a project" />
                     </SelectTrigger>
@@ -228,7 +223,7 @@ export function UsageClient() {
                 </div>
                 <div className="grid gap-3">
                   <Label htmlFor="material-type">Material Type</Label>
-                  <Select value={newLog.materialId} onValueChange={(value) => handleInputChange('materialId', value)} disabled={!newLog.projectId}>
+                  <Select value={newLog.materialId} onValueChange={(value) => handleInputChange('materialId', value)} disabled={!selectedProject}>
                     <SelectTrigger id="material-type" aria-label="Select material">
                       <SelectValue placeholder="Select from available stock" />
                     </SelectTrigger>

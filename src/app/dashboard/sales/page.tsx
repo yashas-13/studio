@@ -107,15 +107,18 @@ export default function SalesDashboardPage() {
             setProjects(projectsData);
         });
     
-        const qActivity = query(collection(db, "leads"), where("assignedTo", "==", loggedInUserName), orderBy("createdAt", "desc"), limit(5));
+        const qActivity = query(collection(db, "leads"), where("assignedTo", "==", loggedInUserName));
         const unsubscribeActivity = onSnapshot(qActivity, (snapshot) => {
-          const feedData = snapshot.docs.map(doc => ({
+          const allActivities = snapshot.docs.map(doc => ({
             id: doc.id,
             details: `New lead assigned.`,
             leadName: doc.data().name,
             timestamp: doc.data().createdAt,
           })) as ActivityFeedItem[];
-          setActivityFeed(feedData);
+          
+          allActivities.sort((a, b) => (b.timestamp?.toDate() || 0) > (a.timestamp?.toDate() || 0) ? 1 : -1);
+          
+          setActivityFeed(allActivities.slice(0, 5));
         });
         
         // Mock follow-up data fetching from a 'tasks' collection for example

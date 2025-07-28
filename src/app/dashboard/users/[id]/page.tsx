@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { updateUser } from '../actions';
+import { ReassignLeadDialog } from '@/components/reassign-lead-dialog';
 
 interface UserProfile {
   id: string;
@@ -40,12 +41,15 @@ export default function UserProfilePage() {
   const { id } = params;
   const { toast } = useToast();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [allSalesReps, setAllSalesReps] = useState<UserProfile[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<SalesRepStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState<Partial<UserProfile>>({});
+  const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
+  const [leadToReassign, setLeadToReassign] = useState<Lead | null>(null);
 
   useEffect(() => {
     if (typeof id !== 'string') return;
@@ -57,6 +61,7 @@ export default function UserProfilePage() {
           
           if (userData.role === 'salesrep') {
             fetchLeads(userData.name);
+            fetchAllSalesReps();
           } else if (userData.role === 'sitemanager') {
             fetchProjects(userData.name);
           } else {
@@ -92,6 +97,13 @@ export default function UserProfilePage() {
         const userProjects = projectSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
         setProjects(userProjects);
         setLoading(false);
+    }
+    
+    const fetchAllSalesReps = async () => {
+        const q = query(collection(db, "users"), where("role", "==", "salesrep"));
+        const repsSnapshot = await getDocs(q);
+        const repsData = repsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
+        setAllSalesReps(repsData);
     }
 
     return () => userUnsub();
@@ -132,6 +144,11 @@ export default function UserProfilePage() {
     }
   }
 
+  const handleReassignClick = (lead: Lead) => {
+    setLeadToReassign(lead);
+    setIsReassignDialogOpen(true);
+  }
+
 
   if (loading) {
     return <UserProfileSkeleton />;
@@ -142,6 +159,7 @@ export default function UserProfilePage() {
   }
 
   return (
+    <>
     <div className="flex flex-col gap-6">
        <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
@@ -278,16 +296,20 @@ export default function UserProfilePage() {
                                     <TableHead>Lead Name</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead>Requirements</TableHead>
+                                    <TableHead className='text-right'>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {leads.length > 0 ? leads.map(lead => (
-                                    <TableRow key={lead.id} onClick={() => router.push(`/dashboard/crm/${lead.id}`)} className="cursor-pointer">
-                                        <TableCell>{lead.name}</TableCell>
+                                    <TableRow key={lead.id}>
+                                        <TableCell  onClick={() => router.push(`/dashboard/crm/${lead.id}`)} className="cursor-pointer font-medium">{lead.name}</TableCell>
                                         <TableCell><Badge variant="outline">{lead.status}</Badge></TableCell>
                                         <TableCell className="truncate text-muted-foreground max-w-xs">{lead.requirements}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="outline" size="sm" onClick={() => handleReassignClick(lead)}>Re-assign</Button>
+                                        </TableCell>
                                     </TableRow>
-                                )) : <TableRow><TableCell colSpan={3} className="text-center">No leads assigned.</TableCell></TableRow>}
+                                )) : <TableRow><TableCell colSpan={4} className="text-center">No leads assigned.</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -306,6 +328,16 @@ export default function UserProfilePage() {
         </div>
       </div>
     </div>
+    {leadToReassign && user &&(
+        <ReassignLeadDialog
+            isOpen={isReassignDialogOpen}
+            onOpenChange={setIsReassignDialogOpen}
+            lead={leadToReassign}
+            currentUser={user}
+            otherSalesReps={allSalesReps.filter(rep => rep.id !== user.id)}
+        />
+    )}
+    </>
   );
 }
 

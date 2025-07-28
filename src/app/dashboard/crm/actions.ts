@@ -64,3 +64,17 @@ export async function addLeadDocument(leadId: string, fileName: string, fileType
     });
     revalidatePath(`/dashboard/crm/${leadId}`);
 }
+
+export async function reassignLead(leadId: string, oldAssignee: string, newAssignee: string) {
+    const leadRef = doc(db, 'leads', leadId);
+    await updateDoc(leadRef, { assignedTo: newAssignee });
+    
+    await addDoc(collection(db, 'leads', leadId, 'activity'), {
+        type: 'Status Change',
+        content: `Lead reassigned from ${oldAssignee} to ${newAssignee}.`,
+        date: serverTimestamp(),
+        user: 'Owner' // Placeholder for system/owner action
+    });
+    revalidatePath(`/dashboard/crm/${leadId}`);
+    revalidatePath(`/dashboard/users`);
+}

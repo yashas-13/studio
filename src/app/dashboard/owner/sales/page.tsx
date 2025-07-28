@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, TrendingUp } from "lucide-react";
+import { DollarSign, Users, TrendingUp, Flame, Sun, Snowflake, CheckCircle } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -47,6 +47,9 @@ export default function SalesAnalyticsPage() {
 
     const totalLeads = leads.length;
     const totalBooked = leads.filter(l => l.status === 'Booked').length;
+    const hotLeads = leads.filter(l => l.status === 'Hot').length;
+    const warmLeads = leads.filter(l => l.status === 'Warm').length;
+    const coldLeads = leads.filter(l => l.status === 'Cold').length;
     const totalRevenue = leads.filter(l => l.status === 'Booked').reduce((acc, lead) => acc + (lead.price || 0), 0);
     const conversionRate = totalLeads > 0 ? (totalBooked / totalLeads) * 100 : 0;
 
@@ -86,7 +89,17 @@ export default function SalesAnalyticsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">₹{totalRevenue.toLocaleString('en-IN')}</div>
-                        <p className="text-xs text-muted-foreground">From all sales activities</p>
+                        <p className="text-xs text-muted-foreground">From all booked deals</p>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Booked Deals</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalBooked}</div>
+                        <p className="text-xs text-muted-foreground">Successfully closed leads</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -96,17 +109,7 @@ export default function SalesAnalyticsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">+{totalLeads}</div>
-                        <p className="text-xs text-muted-foreground">Across the team</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Overall Conversion Rate</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{conversionRate.toFixed(1)}%</div>
-                        <p className="text-xs text-muted-foreground">Leads to booked deals</p>
+                        <p className="text-xs text-muted-foreground">Across all stages</p>
                     </CardContent>
                 </Card>
                  <Card>
@@ -120,6 +123,37 @@ export default function SalesAnalyticsPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Sales Funnel</CardTitle>
+                    <CardDescription>
+                        A snapshot of where leads are in the pipeline.
+                    </CardDescription>
+                </CardHeader>
+                 <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="p-4 bg-red-500/10 rounded-lg text-center">
+                        <Flame className="mx-auto h-6 w-6 mb-2 text-red-500" />
+                        <p className="text-2xl font-bold">{hotLeads}</p>
+                        <p className="text-sm text-red-500/80 font-semibold">Hot Leads</p>
+                    </div>
+                     <div className="p-4 bg-yellow-500/10 rounded-lg text-center">
+                        <Sun className="mx-auto h-6 w-6 mb-2 text-yellow-500" />
+                        <p className="text-2xl font-bold">{warmLeads}</p>
+                        <p className="text-sm text-yellow-500/80 font-semibold">Warm Leads</p>
+                    </div>
+                     <div className="p-4 bg-blue-500/10 rounded-lg text-center">
+                        <Snowflake className="mx-auto h-6 w-6 mb-2 text-blue-500" />
+                        <p className="text-2xl font-bold">{coldLeads}</p>
+                        <p className="text-sm text-blue-500/80 font-semibold">Cold Leads</p>
+                    </div>
+                     <div className="p-4 bg-green-500/10 rounded-lg text-center">
+                        <TrendingUp className="mx-auto h-6 w-6 mb-2 text-green-500" />
+                        <p className="text-2xl font-bold">{conversionRate.toFixed(1)}%</p>
+                        <p className="text-sm text-green-500/80 font-semibold">Conversion Rate</p>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>

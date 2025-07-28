@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, MoveRight, Sparkles, Building, Home } from 'lucide-react';
@@ -12,7 +12,7 @@ import { recommendProperties, type PropertyRecommendationOutput } from '@/ai/flo
 import { type Lead } from '@/app/dashboard/crm/page';
 import { type Property } from '@/lib/types';
 import Link from 'next/link';
-import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -29,7 +29,7 @@ export default function LeadActions({ lead }: LeadActionsProps) {
 
     const { toast } = useToast();
 
-    useState(() => {
+    useEffect(() => {
         if (lead.id) {
             const activityQuery = query(collection(db, 'leads', lead.id, 'activity'), orderBy('date', 'desc'));
             const activityUnsub = onSnapshot(activityQuery, (snapshot) => {
@@ -174,6 +174,3 @@ export default function LeadActions({ lead }: LeadActionsProps) {
         </Card>
     );
 }
-
-// Dummy orderBy import for state management
-import { orderBy } from "firebase/firestore";

@@ -18,15 +18,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Table,
   TableBody,
   TableCell,
@@ -36,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { db, collection, onSnapshot, doc, deleteDoc, query, orderBy } from "@/lib/firebase";
+import { ApproveMaterialRequestDialog } from "@/components/approve-material-request-dialog";
 
 interface Material {
   id: string;
@@ -51,6 +43,9 @@ interface Material {
 export default function OwnerMaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+
 
   useEffect(() => {
     const q = query(collection(db, "materials"), orderBy("lastUpdated", "desc"));
@@ -65,6 +60,11 @@ export default function OwnerMaterialsPage() {
     });
     return () => unsubscribe();
   }, []);
+  
+  const handleReviewClick = (material: Material) => {
+    setSelectedMaterial(material);
+    setIsDialogOpen(true);
+  }
 
   const formatLastUpdated = (dateString: string) => {
     if (!dateString || isNaN(new Date(dateString).getTime())) {
@@ -95,7 +95,7 @@ export default function OwnerMaterialsPage() {
         <Card>
             <CardHeader>
                 <CardTitle>All Materials</CardTitle>
-                <CardDescription>A consolidated view of all materials across every project.</CardDescription>
+                <CardDescription>A consolidated view of all materials across every project, including pending requests.</CardDescription>
             </CardHeader>
           <CardContent>
             <Table>
@@ -103,17 +103,18 @@ export default function OwnerMaterialsPage() {
                 <TableRow>
                   <TableHead>Material</TableHead>
                   <TableHead>Project</TableHead>
-                  <TableHead>Current Stock</TableHead>
+                  <TableHead>Stock/Request Qty</TableHead>
                   <TableHead>Supplier</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">
                     Last Updated
                   </TableHead>
+                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                    <TableRow><TableCell colSpan={6} className="h-24 text-center">Loading inventory...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="h-24 text-center">Loading inventory...</TableCell></TableRow>
                 ) : materials.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
@@ -125,6 +126,13 @@ export default function OwnerMaterialsPage() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {formatLastUpdated(item.lastUpdated)}
+                    </TableCell>
+                    <TableCell>
+                      {item.status === 'Pending' ? (
+                        <Button variant="outline" size="sm" onClick={() => handleReviewClick(item)}>Review</Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">N/A</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -138,6 +146,14 @@ export default function OwnerMaterialsPage() {
           </CardFooter>
         </Card>
       </div>
+      {selectedMaterial && (
+        <ApproveMaterialRequestDialog
+          isOpen={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          material={selectedMaterial}
+        />
+      )}
     </>
   );
 }
+

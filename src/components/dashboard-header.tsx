@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Search,
-  Menu
+  Menu,
+  ChevronDown
 } from "lucide-react";
 
 import {
@@ -49,15 +50,29 @@ export function DashboardHeader({ navLinks }: DashboardHeaderProps) {
             <ConstructWiseLogo className="h-6 w-6" />
             <span className="hidden md:inline-block">ConstructWise</span>
           </Link>
-          {navLinks && navLinks.length > 0 && navLinks.map((link) => (
-              <Link
-              key={link.href}
-              href={link.href}
-              className={`transition-colors hover:text-foreground ${pathname === link.href ? 'text-foreground' : 'text-muted-foreground'}`}
-              >
-              {link.label}
-              </Link>
-          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-1">
+                Features
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuLabel>Navigate to</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {navLinks && navLinks.length > 0 && navLinks.map((link) => (
+                <DropdownMenuItem key={link.href} asChild>
+                  <Link
+                    href={link.href}
+                    className={`transition-colors hover:text-foreground ${pathname === link.href ? 'text-foreground' : 'text-muted-foreground'}`}
+                  >
+                    <link.icon className="mr-2 h-4 w-4" />
+                    {link.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
         <Sheet>
           <SheetTrigger asChild>

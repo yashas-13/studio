@@ -20,6 +20,7 @@ interface UsageLog {
   quantity: number;
   unit: string;
   project: string;
+  projectId: string;
   area: string;
   date: string;
   user: string;
@@ -30,7 +31,6 @@ interface Material {
   id: string;
   name: string;
   project: string;
-  projectId: string;
   quantity: number;
   unit: string;
 }
@@ -156,7 +156,10 @@ export function UsageClient() {
     }
   };
 
-  const filteredMaterials = materials.filter(m => m.projectId === selectedProject);
+  const selectedProjectData = projects.find(p => p.id === selectedProject);
+  const filteredMaterials = selectedProjectData 
+    ? materials.filter(m => m.project === selectedProjectData.name)
+    : [];
 
   return (
     <div className="grid flex-1 items-start gap-4 lg:grid-cols-3 lg:gap-8">

@@ -13,6 +13,7 @@ import LeadRequirementsCard from '@/components/lead-requirements-card';
 import LeadActions from '@/components/lead-actions';
 import LeadActivity from '@/components/lead-activity';
 import LeadDocumentsCard from '@/components/lead-documents-card';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 
 export default function LeadProfilePage() {
@@ -56,7 +57,7 @@ export default function LeadProfilePage() {
         <div className="lg:col-span-1 space-y-6">
             <LeadDetailsCard lead={lead} />
             <LeadRequirementsCard lead={lead} />
-            <LeadDocumentsCard leadId={lead.id} />
+            <LeadDocumentsCard lead={lead} />
         </div>
         <div className="lg:col-span-2 space-y-6">
             <LeadActions lead={lead} />
@@ -129,14 +130,4 @@ function LeadProfileSkeleton() {
             </div>
         </div>
     )
-}
-
-function Card({ children }: { children: React.ReactNode }) {
-    return <div className="rounded-lg border bg-card text-card-foreground shadow-sm">{children}</div>
-}
-function CardHeader({ children }: { children: React.ReactNode }) {
-    return <div className="flex flex-col space-y-1.5 p-6">{children}</div>
-}
-function CardContent({ children }: { children: React.ReactNode }) {
-    return <div className="p-6 pt-0">{children}</div>
 }

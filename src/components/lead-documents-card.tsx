@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { addLeadDocument } from '@/app/dashboard/crm/actions';
-import { File, FilePlus, FileText, Image, BadgeIndianRupee } from 'lucide-react';
+import { File, FilePlus, FileText, Image } from 'lucide-react';
 import {
   Dialog,
   DialogContent,

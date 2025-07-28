@@ -12,7 +12,7 @@ import { recommendProperties, type PropertyRecommendationOutput } from '@/ai/flo
 import { type Lead } from '@/app/dashboard/crm/page';
 import { type Property } from '@/lib/types';
 import Link from 'next/link';
-import { collection, getDocs, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 

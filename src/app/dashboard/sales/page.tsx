@@ -51,6 +51,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LeadAnalysisClient } from "@/components/client/lead-analysis-client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Project } from "../owner/projects/page";
+import SalesPerformanceCard from "@/components/sales-performance-card";
 
 interface ActivityFeedItem {
     id: string;
@@ -95,7 +96,7 @@ export default function SalesDashboardPage() {
         const unsubscribeLeads = onSnapshot(qLeads, (snapshot) => {
           const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Lead[];
           // Sort client-side
-          leadsData.sort((a, b) => b.createdAt?.toDate() - a.createdAt?.toDate());
+          leadsData.sort((a, b) => (b.createdAt?.toDate() || 0) > (a.createdAt?.toDate() || 0) ? 1 : -1);
           setLeads(leadsData);
           setLoading(false);
         });
@@ -114,7 +115,7 @@ export default function SalesDashboardPage() {
             leadName: doc.data().name,
             timestamp: doc.data().createdAt,
           })) as ActivityFeedItem[];
-          feedData.sort((a,b) => b.timestamp?.toDate() - a.timestamp?.toDate());
+          feedData.sort((a,b) => (b.timestamp?.toDate() || 0) > (a.timestamp?.toDate() || 0) ? 1 : -1);
           setActivityFeed(feedData);
         });
         
@@ -127,6 +128,7 @@ export default function SalesDashboardPage() {
             const followUps = snapshot.docs
               .map(doc => {
                 const taskData = doc.data();
+                if (!taskData.dueDate) return null;
                 const dueDate = new Date(taskData.dueDate);
                 let status: "Overdue" | "Today" | "Upcoming" = "Upcoming";
                 if (dueDate < today) {
@@ -142,8 +144,8 @@ export default function SalesDashboardPage() {
                     due: dueDate.toLocaleDateString(),
                     status: status,
                 }
-              }).filter(doc => doc.status !== 'Done');
-            setUpcomingFollowUps(followUps as FollowUpTask[]);
+              }).filter(doc => doc && doc.status !== 'Done') as FollowUpTask[];
+            setUpcomingFollowUps(followUps);
         });
     
         return () => {
@@ -156,8 +158,9 @@ export default function SalesDashboardPage() {
 
     const warmLeadsCount = leads.filter(l => l.status === 'Warm').length;
     const hotLeadsCount = leads.filter(l => l.status === 'Hot').length;
-    const bookedLeads = leads.filter(l => l.status === 'Booked').length;
-    const conversionRate = leads.length > 0 ? (bookedLeads / leads.length) * 100 : 0;
+    const bookedLeadsCount = leads.filter(l => l.status === 'Booked').length;
+    const totalRevenue = leads.filter(l => l.status === 'Booked').reduce((acc, lead) => acc + (lead.price || 0), 0);
+    const conversionRate = leads.length > 0 ? (bookedLeadsCount / leads.length) * 100 : 0;
     
     const handleInputChange = (name: string, value: string) => {
       setNewLead(prev => ({ ...prev, [name]: value }));
@@ -236,48 +239,12 @@ export default function SalesDashboardPage() {
             </Button>
           </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{leads.length}</div>
-            <p className="text-xs text-muted-foreground">Your active leads</p>
-          </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Warm Leads</CardTitle>
-                <UserPlus className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">+{warmLeadsCount}</div>
-                <p className="text-xs text-muted-foreground">Ready to be contacted</p>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Hot Leads</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{hotLeadsCount}</div>
-                <p className="text-xs text-muted-foreground">High-interest in the pipeline</p>
-            </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{conversionRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">Based on booked deals</p>
-          </CardContent>
-        </Card>
-      </div>
+       <SalesPerformanceCard 
+        totalLeads={leads.length}
+        bookedDeals={bookedLeadsCount}
+        revenue={totalRevenue}
+        conversionRate={conversionRate}
+      />
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader className="flex flex-row items-center">

@@ -36,6 +36,8 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import { db, collection, onSnapshot, doc, deleteDoc, query, orderBy } from "@/lib/firebase";
+import { RequestMaterialDialog } from "@/components/request-material-dialog";
+import { type Project } from "../owner/projects/page";
 
 interface Material {
   id: string;
@@ -52,6 +54,8 @@ interface Material {
 
 export default function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, "materials"), orderBy("lastUpdated", "desc"));
@@ -66,7 +70,16 @@ export default function MaterialsPage() {
       });
       setMaterials(materialsData);
     });
-    return () => unsubscribe();
+
+    const projectsUnsub = onSnapshot(collection(db, "projects"), (snapshot) => {
+      const projectsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+      setProjects(projectsData);
+    });
+
+    return () => {
+      unsubscribe();
+      projectsUnsub();
+    }
   }, []);
 
   const handleDeleteMaterial = async (id: string) => {
@@ -99,7 +112,10 @@ export default function MaterialsPage() {
         <div className="flex items-center">
           <h1 className="text-lg font-semibold md:text-2xl">Materials Inventory</h1>
           <div className="ml-auto flex items-center gap-2">
-             <p className="text-sm text-muted-foreground">This is a view-only inventory. Add materials via the Daily Usage Log page.</p>
+             <Button onClick={() => setIsRequestDialogOpen(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Request Material
+             </Button>
           </div>
         </div>
         <Card>
@@ -163,6 +179,11 @@ export default function MaterialsPage() {
           </CardFooter>
         </Card>
       </div>
+      <RequestMaterialDialog 
+        isOpen={isRequestDialogOpen}
+        onOpenChange={setIsRequestDialogOpen}
+        projects={projects}
+      />
     </>
   );
 }

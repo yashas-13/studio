@@ -24,6 +24,7 @@ import {
   Voicemail,
   Menu,
   Building,
+  Camera,
 } from "lucide-react";
 import {
   Sheet,
@@ -76,6 +77,7 @@ export default function DashboardLayout({
     { href: "/dashboard/reports", icon: LineChart, label: "Reports" },
     { href: "/dashboard/timeline", icon: GanttChartSquare, label: "Timeline" },
     { href: "/dashboard/usage", icon: ShoppingCart, label: "Usage" },
+    { href: "/dashboard/progress-reporting", icon: Camera, label: "Progress Reporting"},
     { href: "/dashboard/ai-tools", icon: Bot, label: "AI Tools" },
   ];
   

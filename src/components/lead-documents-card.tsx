@@ -43,12 +43,14 @@ export default function LeadDocumentsCard({ lead }: LeadDocumentsCardProps) {
     useEffect(() => {
         if (!lead.id) return;
         // Query the central 'files' collection for documents linked to this lead
-        const documentsQuery = query(collection(db, 'files'), where('leadId', '==', lead.id), orderBy('date', 'desc'));
+        const documentsQuery = query(collection(db, 'files'), where('leadId', '==', lead.id));
         const unsub = onSnapshot(documentsQuery, (snapshot) => {
             const docsData: Document[] = [];
             snapshot.forEach(doc => {
                 docsData.push({ id: doc.id, ...doc.data() } as Document);
             });
+            // Sort client-side
+            docsData.sort((a, b) => b.date?.toDate() - a.date?.toDate());
             setDocuments(docsData);
         });
         return () => unsub();

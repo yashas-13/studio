@@ -10,17 +10,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Mail, User, Shield, Activity, Users, CheckCircle, DollarSign, Briefcase, GanttChartSquare } from 'lucide-react';
+import { ArrowLeft, Mail, User, Shield, Activity, Users, CheckCircle, DollarSign, Briefcase, GanttChartSquare, Edit, Save, X } from 'lucide-react';
 import { type Lead } from '../../crm/page';
 import { type Project } from '../../owner/projects/page';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { updateUser } from '../actions';
 
 interface UserProfile {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: 'sitemanager' | 'owner' | 'entryguard' | 'salesrep';
 }
 
 interface SalesRepStats {
@@ -33,11 +38,14 @@ export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
+  const { toast } = useToast();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<SalesRepStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedUser, setEditedUser] = useState<Partial<UserProfile>>({});
 
   useEffect(() => {
     if (typeof id !== 'string') return;
@@ -89,6 +97,42 @@ export default function UserProfilePage() {
     return () => userUnsub();
   }, [id, router]);
 
+  const handleEditToggle = () => {
+    if (!user) return;
+    if (!isEditing) {
+        setEditedUser({
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        });
+    }
+    setIsEditing(!isEditing);
+  }
+
+  const handleInputChange = (field: keyof UserProfile, value: string) => {
+      setEditedUser(prev => ({ ...prev, [field]: value }));
+  }
+  
+  const handleSave = async () => {
+    if (!user || !editedUser.name || !editedUser.email || !editedUser.role) {
+        toast({ title: "Error", description: "All fields are required.", variant: "destructive" });
+        return;
+    }
+    try {
+        await updateUser(user.id, {
+            name: editedUser.name,
+            email: editedUser.email,
+            role: editedUser.role,
+        });
+        toast({ title: "Success", description: "User details updated." });
+        setIsEditing(false);
+    } catch (error) {
+        console.error("Error updating user:", error);
+        toast({ title: "Error", description: "Could not update user.", variant: "destructive" });
+    }
+  }
+
+
   if (loading) {
     return <UserProfileSkeleton />;
   }
@@ -112,16 +156,68 @@ export default function UserProfilePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-6">
              <Card>
-                <CardContent className="pt-6">
+                <CardHeader>
+                    <div className='flex justify-between items-start'>
+                        <CardTitle>User Details</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={handleEditToggle}>
+                            {isEditing ? <X className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-0">
                     <div className="flex flex-col items-center text-center">
                          <Avatar className="h-24 w-24 mb-4">
                             <AvatarImage src={`https://i.pravatar.cc/150?u=${user.email}`} alt={user.name} />
                             <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                         </Avatar>
-                        <h2 className="text-xl font-semibold">{user.name}</h2>
-                        <p className="text-muted-foreground">{user.email}</p>
-                        <Badge className="mt-2 capitalize" variant={user.role === 'owner' ? 'default' : 'secondary'}>{user.role}</Badge>
+                        {isEditing ? (
+                            <Input className='text-xl font-semibold text-center mb-2' value={editedUser.name} onChange={(e) => handleInputChange('name', e.target.value)} />
+                        ) : (
+                            <h2 className="text-xl font-semibold">{user.name}</h2>
+                        )}
                     </div>
+                     <div className="mt-6 space-y-3 text-sm">
+                        {isEditing ? (
+                            <>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label htmlFor="email">Email</Label>
+                                <Input type="email" id="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} />
+                            </div>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label htmlFor="role">Role</Label>
+                                <Select value={editedUser.role} onValueChange={(value: UserProfile['role']) => handleInputChange('role', value)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="sitemanager">Site Manager</SelectItem>
+                                        <SelectItem value="owner">Owner</SelectItem>
+                                        <SelectItem value="entryguard">Entry Guard</SelectItem>
+                                        <SelectItem value="salesrep">Sales Representative</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            </>
+
+                        ) : (
+                            <>
+                            <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">{user.email}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Shield className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-muted-foreground capitalize">{user.role}</span>
+                            </div>
+                            </>
+                        )}
+                    </div>
+                     {isEditing && (
+                        <Button onClick={handleSave} className="w-full mt-4">
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Changes
+                        </Button>
+                    )}
                 </CardContent>
             </Card>
             {user.role === 'salesrep' && stats && (

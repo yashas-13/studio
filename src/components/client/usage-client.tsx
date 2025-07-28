@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { db, collection, addDoc, onSnapshot, doc, updateDoc, getDoc, query, orderBy, serverTimestamp } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { type Project } from "@/app/dashboard/owner/projects/page";
 
 interface UsageLog {
   id: string;
@@ -29,6 +30,7 @@ interface Material {
   id: string;
   name: string;
   project: string;
+  projectId: string;
   quantity: number;
   unit: string;
 }
@@ -36,13 +38,14 @@ interface Material {
 export function UsageClient() {
   const [logs, setLogs] = useState<UsageLog[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
   const [newLog, setNewLog] = useState({
     materialId: "",
     quantity: "",
     area: "",
     notes: "",
-    project: ""
+    projectId: ""
   });
   const { toast } = useToast();
 
@@ -64,22 +67,27 @@ export function UsageClient() {
       });
       setMaterials(materialsData);
       
-      // If a project is already selected, refresh its materials list
-      if (newLog.project) {
-          const projectMaterials = materialsData.filter(m => m.project === newLog.project);
+      if (newLog.projectId) {
+          const projectMaterials = materialsData.filter(m => m.projectId === newLog.projectId);
           setFilteredMaterials(projectMaterials);
       }
+    });
+
+    const qProjects = collection(db, "projects");
+    const unsubscribeProjects = onSnapshot(qProjects, (snapshot) => {
+        setProjects(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Project)))
     });
 
     return () => {
       unsubscribeLogs();
       unsubscribeMaterials();
+      unsubscribeProjects();
     };
-  }, [newLog.project]);
+  }, [newLog.projectId]);
 
-  const handleProjectChange = (projectName: string) => {
-    setNewLog(prev => ({ ...prev, project: projectName, materialId: "" }));
-    const projectMaterials = materials.filter(m => m.project === projectName);
+  const handleProjectChange = (projectId: string) => {
+    setNewLog(prev => ({ ...prev, projectId: projectId, materialId: "" }));
+    const projectMaterials = materials.filter(m => m.projectId === projectId);
     setFilteredMaterials(projectMaterials);
   };
 
@@ -89,7 +97,7 @@ export function UsageClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLog.materialId || !newLog.quantity || !newLog.area || !newLog.project) {
+    if (!newLog.materialId || !newLog.quantity || !newLog.area || !newLog.projectId) {
       toast({ title: "Error", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
@@ -117,46 +125,43 @@ export function UsageClient() {
         return;
       }
 
-      // Reduce stock
       await updateDoc(materialDocRef, {
         quantity: currentStock - usedQuantity,
         lastUpdated: new Date().toISOString()
       });
 
-      // Add usage log
+      const selectedProject = projects.find(p => p.id === newLog.projectId);
+
       const usageLogPayload = {
         materialName: materialData.name,
         quantity: usedQuantity,
         unit: materialData.unit || '',
-        project: newLog.project,
+        project: selectedProject?.name || 'N/A',
+        projectId: newLog.projectId,
         area: newLog.area,
         notes: newLog.notes,
         date: new Date().toISOString(),
-        user: "S. Manager" // Placeholder user
+        user: "S. Manager" 
       }
       await addDoc(collection(db, "usageLogs"), usageLogPayload);
       
-       // Add to activity feed for owner notification
-      const activityDetail = `${usedQuantity} ${materialData.unit || ''} of ${materialData.name} used at ${newLog.project} (${newLog.area}).`;
+      const activityDetail = `${usedQuantity} ${materialData.unit || ''} of ${materialData.name} used at ${selectedProject?.name} (${newLog.area}).`;
       await addDoc(collection(db, "activityFeed"), {
         type: 'MATERIAL_USAGE',
-        user: 'Site Manager', // Placeholder user
+        user: 'Site Manager',
         details: activityDetail,
         timestamp: serverTimestamp()
       });
       
       toast({ title: "Success", description: "Usage logged and inventory updated." });
 
-      // Reset form
-      setNewLog({ materialId: "", quantity: "", area: "", notes: "", project: newLog.project });
+      setNewLog({ materialId: "", quantity: "", area: "", notes: "", projectId: newLog.projectId });
 
     } catch (error) {
       console.error("Error logging usage: ", error);
       toast({ title: "Error", description: "Could not log usage.", variant: "destructive" });
     }
   };
-
-  const uniqueProjects = [...new Set(materials.map(m => m.project))];
 
   return (
     <div className="grid flex-1 items-start gap-4 lg:grid-cols-3 lg:gap-8">
@@ -210,20 +215,20 @@ export function UsageClient() {
               <div className="grid gap-6">
                  <div className="grid gap-3">
                   <Label htmlFor="project">Project</Label>
-                  <Select value={newLog.project} onValueChange={handleProjectChange}>
+                  <Select value={newLog.projectId} onValueChange={handleProjectChange}>
                     <SelectTrigger id="project" aria-label="Select project">
                       <SelectValue placeholder="Select a project" />
                     </SelectTrigger>
                     <SelectContent>
-                      {uniqueProjects.map((project) => (
-                        <SelectItem key={project} value={project}>{project}</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-3">
                   <Label htmlFor="material-type">Material Type</Label>
-                  <Select value={newLog.materialId} onValueChange={(value) => handleInputChange('materialId', value)} disabled={!newLog.project}>
+                  <Select value={newLog.materialId} onValueChange={(value) => handleInputChange('materialId', value)} disabled={!newLog.projectId}>
                     <SelectTrigger id="material-type" aria-label="Select material">
                       <SelectValue placeholder="Select from available stock" />
                     </SelectTrigger>

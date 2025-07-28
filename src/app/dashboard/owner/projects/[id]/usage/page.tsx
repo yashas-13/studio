@@ -16,6 +16,7 @@ interface UsageLog {
   quantity: number;
   unit: string;
   project: string;
+  projectId: string;
   area: string;
   date: string;
   user: string;
@@ -31,29 +32,30 @@ export default function ProjectUsagePage() {
 
     useEffect(() => {
         if (typeof id === 'string') {
-            const fetchProject = async () => {
-                const docRef = doc(db, 'projects', id);
-                const docSnap = await getDoc(docRef);
+            const unsubscribes: (() => void)[] = [];
+
+            const projectDocRef = doc(db, 'projects', id);
+            const projectUnsub = onSnapshot(projectDocRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    const projectData = { id: docSnap.id, ...docSnap.data() } as Project;
-                    setProject(projectData);
-                    
-                    // Fetch usage logs once project is loaded
-                    const q = query(collection(db, "usageLogs"), where("project", "==", projectData.name));
-                    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-                        const logsData: UsageLog[] = [];
-                        querySnapshot.forEach((doc) => {
-                            logsData.push({ id: doc.id, ...doc.data() } as UsageLog);
-                        });
-                        setUsageLogs(logsData);
-                        setLoading(false);
-                    });
-                    return () => unsubscribe();
-                } else {
-                    setLoading(false);
+                    setProject({ id: docSnap.id, ...docSnap.data() } as Project);
                 }
-            }
-            fetchProject();
+            });
+            unsubscribes.push(projectUnsub);
+            
+            const q = query(collection(db, "usageLogs"), where("projectId", "==", id));
+            const usageUnsub = onSnapshot(q, (querySnapshot) => {
+                const logsData: UsageLog[] = [];
+                querySnapshot.forEach((doc) => {
+                    logsData.push({ id: doc.id, ...doc.data() } as UsageLog);
+                });
+                setUsageLogs(logsData);
+                setLoading(false);
+            }, () => {
+                setLoading(false);
+            });
+            unsubscribes.push(usageUnsub);
+
+            return () => unsubscribes.forEach(unsub => unsub());
         }
     }, [id]);
     

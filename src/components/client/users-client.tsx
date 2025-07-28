@@ -7,6 +7,9 @@ import {
   MoreHorizontal,
   PlusCircle,
   Users,
+  Shield,
+  Briefcase,
+  Construction,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,10 +110,19 @@ export function UsersClient() {
         toast({ title: "User Deleted" });
     }
   }
+  
+  const userStats = users.reduce((acc, user) => {
+      acc.total++;
+      if (user.role === 'sitemanager') acc.sitemanager++;
+      if (user.role === 'salesrep') acc.salesrep++;
+      if (user.role === 'entryguard') acc.entryguard++;
+      if (user.role === 'owner') acc.owner++;
+      return acc;
+  }, { total: 0, sitemanager: 0, salesrep: 0, entryguard: 0, owner: 0 });
 
   return (
     <>
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center">
         <h1 className="text-lg font-semibold md:text-2xl">User Management</h1>
         <div className="ml-auto flex items-center gap-2">
@@ -122,9 +134,49 @@ export function UsersClient() {
           </Button>
         </div>
       </div>
+      
+       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Site Managers</CardTitle>
+            <Construction className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.sitemanager}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Sales Team</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.salesrep}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Owners</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.owner}</div>
+          </CardContent>
+        </Card>
+      </div>
+      
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
+          <CardTitle>User List</CardTitle>
           <CardDescription>
             Manage site managers and other users.
           </CardDescription>

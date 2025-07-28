@@ -50,7 +50,11 @@ export default function LeadDocumentsCard({ lead }: LeadDocumentsCardProps) {
                 docsData.push({ id: doc.id, ...doc.data() } as Document);
             });
             // Sort client-side
-            docsData.sort((a, b) => b.date?.toDate() - a.date?.toDate());
+            docsData.sort((a, b) => {
+                const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                return dateB.getTime() - dateA.getTime();
+            });
             setDocuments(docsData);
         });
         return () => unsub();

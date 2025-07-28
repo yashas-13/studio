@@ -116,12 +116,14 @@ export default function SalesDashboardPage() {
         });
         
         // Mock follow-up data fetching from a 'tasks' collection for example
-        const qTasks = query(collection(db, "tasks"), where("assignee", "==", loggedInUserName), where("status", "!=", "Done"));
+        const qTasks = query(collection(db, "tasks"), where("assignee", "==", loggedInUserName));
         const unsubTasks = onSnapshot(qTasks, (snapshot) => {
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-            const followUps = snapshot.docs.map(doc => {
+            const followUps = snapshot.docs
+              .filter(doc => doc.data().status !== 'Done')
+              .map(doc => {
                 const taskData = doc.data();
                 const dueDate = new Date(taskData.dueDate);
                 let status: "Overdue" | "Today" | "Upcoming" = "Upcoming";

@@ -25,6 +25,7 @@ import {
   Menu,
   Building,
   Camera,
+  LayoutDashboard,
 } from "lucide-react";
 import {
   Sheet,
@@ -65,6 +66,7 @@ export default function DashboardLayout({
   const ownerNavLinks = [
     { href: "/dashboard/owner", icon: Shield, label: "Owner's View" },
     { href: "/dashboard/owner/projects", icon: GanttChartSquare, label: "Projects" },
+    { href: "/dashboard/crm", icon: LayoutDashboard, label: "CRM" },
     { href: "/dashboard/owner/materials", icon: Package, label: "Materials" },
     { href: "/dashboard/users", icon: Users, label: "Users" },
     { href: "/dashboard/owner/sales", icon: Briefcase, label: "Sales" },

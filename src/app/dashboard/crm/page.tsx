@@ -1,12 +1,10 @@
 
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { db, collection, onSnapshot, query, orderBy, where } from "@/lib/firebase";
-import { LeadList } from "@/components/lead-list";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import { db, collection, onSnapshot, query, orderBy } from "@/lib/firebase";
+import { LeadKanbanBoard } from "@/components/lead-kanban-board";
+import { useToast } from "@/hooks/use-toast";
 
 export type LeadStatus = 'Warm' | 'Hot' | 'Cold' | 'Booked';
 export interface Lead {
@@ -23,20 +21,14 @@ export interface Lead {
   price?: number;
 }
 
-function CrmPageComponent() {
-  const searchParams = useSearchParams();
-  const status = searchParams.get('status') as LeadStatus | 'all' | null;
+
+export default function CrmPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
   useEffect(() => {
-    let q;
-    if (status && status !== 'all') {
-      q = query(collection(db, "leads"), where("status", "==", status));
-    } else {
-      q = query(collection(db, "leads"), orderBy("createdAt", "desc"));
-    }
-
+    const q = query(collection(db, "leads"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const leadsData: Lead[] = [];
       querySnapshot.forEach((doc) => {
@@ -44,41 +36,26 @@ function CrmPageComponent() {
       });
       setLeads(leadsData);
       setLoading(false);
+    }, (error) => {
+      console.error("Error fetching leads:", error);
+      toast({
+        title: "Error",
+        description: "Could not fetch leads.",
+        variant: "destructive"
+      });
+      setLoading(false);
     });
+    
     return () => unsubscribe();
-  }, [status]);
+  }, [toast]);
 
-  const tabs: (LeadStatus | 'all')[] = ['all', 'Warm', 'Hot', 'Cold', 'Booked'];
 
   return (
-    <>
-      <div className="flex flex-col gap-6 h-full">
-        <div className="flex items-center">
-          <h1 className="text-lg font-semibold md:text-2xl">Lead Management</h1>
-        </div>
-        
-        <Tabs value={status || 'all'}>
-          <TabsList>
-            {tabs.map(tab => (
-              <Link href={tab === 'all' ? '/dashboard/crm' : `/dashboard/crm?status=${tab}`} key={tab}>
-                <TabsTrigger value={tab}>
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </TabsTrigger>
-              </Link>
-            ))}
-          </TabsList>
-        </Tabs>
-
-        <LeadList leads={leads} loading={loading} />
+    <div className="flex flex-col gap-4 h-full">
+      <div className="flex items-center">
+        <h1 className="text-lg font-semibold md:text-2xl">Lead Management Pipeline</h1>
       </div>
-    </>
+      <LeadKanbanBoard leads={leads} loading={loading} />
+    </div>
   );
-}
-
-export default function CrmPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <CrmPageComponent />
-    </Suspense>
-  )
 }

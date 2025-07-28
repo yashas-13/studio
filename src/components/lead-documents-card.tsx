@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,28 +19,31 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from './ui/input';
+import { type Lead } from '@/app/dashboard/crm/page';
+
 
 interface Document {
     id: string;
     name: string;
     type: string;
     url: string;
-    uploadedAt: any;
+    date: any;
 }
 
 interface LeadDocumentsCardProps {
-    leadId: string;
+    lead: Lead;
 }
 
-export default function LeadDocumentsCard({ leadId }: LeadDocumentsCardProps) {
+export default function LeadDocumentsCard({ lead }: LeadDocumentsCardProps) {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const { toast } = useToast();
 
     useEffect(() => {
-        if (!leadId) return;
-        const documentsQuery = query(collection(db, 'leads', leadId, 'documents'), orderBy('uploadedAt', 'desc'));
+        if (!lead.id) return;
+        // Query the central 'files' collection for documents linked to this lead
+        const documentsQuery = query(collection(db, 'files'), where('leadId', '==', lead.id), orderBy('date', 'desc'));
         const unsub = onSnapshot(documentsQuery, (snapshot) => {
             const docsData: Document[] = [];
             snapshot.forEach(doc => {
@@ -49,7 +52,7 @@ export default function LeadDocumentsCard({ leadId }: LeadDocumentsCardProps) {
             setDocuments(docsData);
         });
         return () => unsub();
-    }, [leadId]);
+    }, [lead.id]);
 
     const handleUpload = async () => {
         if (!selectedFile) {
@@ -57,7 +60,8 @@ export default function LeadDocumentsCard({ leadId }: LeadDocumentsCardProps) {
             return;
         }
         try {
-            await addLeadDocument(leadId, selectedFile.name, selectedFile.type);
+            const fileSize = `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
+            await addLeadDocument(lead.id, lead.name, selectedFile.name, selectedFile.type, fileSize);
             toast({ title: "Document Uploaded", description: `${selectedFile.name} has been added.` });
             setIsUploading(false);
             setSelectedFile(null);

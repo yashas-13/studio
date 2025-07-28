@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import {
   File as FileIcon,
-  ListFilter,
+  Filter,
   MoreHorizontal,
   Upload,
 } from "lucide-react";
@@ -35,7 +35,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { db, addDoc, collection, onSnapshot, doc, deleteDoc } from "@/lib/firebase";
+import { db, addDoc, collection, onSnapshot, doc, deleteDoc, query, orderBy } from "@/lib/firebase";
+import { format } from "date-fns";
+import Link from "next/link";
+import { Skeleton } from "../ui/skeleton";
 
 interface File {
   id: string;
@@ -43,21 +46,26 @@ interface File {
   type: string;
   uploadedBy: string;
   role: string;
-  date: string;
+  date: any;
   size: string;
+  projectId?: string;
+  leadId?: string;
+  leadName?: string;
 }
 
 export function FileSharingClient() {
   const [files, setFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    const q = collection(db, "files");
+    const q = query(collection(db, "files"), orderBy("date", "desc"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const filesData: File[] = [];
       querySnapshot.forEach((doc) => {
         filesData.push({ id: doc.id, ...doc.data() } as File);
       });
       setFiles(filesData);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -65,16 +73,14 @@ export function FileSharingClient() {
 
   const handleFileUpload = async () => {
     // This is a placeholder for file upload logic.
-    // In a real app, you would use Firebase Storage to upload the file
-    // and then create a document in Firestore with the file metadata.
     const now = new Date();
     const newFile = {
-      name: `New-Document-${now.getTime()}.pdf`,
-      type: "Document",
-      uploadedBy: "Site Admin",
-      role: "Admin",
-      date: now.toISOString().split("T")[0],
-      size: `${(Math.random() * 10).toFixed(1)} MB`,
+      name: `Shared-File-${now.getTime()}.pdf`,
+      type: "application/pdf",
+      uploadedBy: "Admin",
+      role: "Owner",
+      date: now.toISOString(),
+      size: `${(Math.random() * 5).toFixed(1)} MB`,
     };
     await addDoc(collection(db, "files"), newFile);
   };
@@ -82,14 +88,20 @@ export function FileSharingClient() {
   const handleDelete = async (fileId: string) => {
     await deleteDoc(doc(db, "files", fileId));
   }
+  
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return format(date, "PPP");
+  };
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center">
-        <h1 className="text-lg font-semibold md:text-2xl">File Sharing</h1>
+        <h1 className="text-lg font-semibold md:text-2xl">Global File Repository</h1>
         <div className="ml-auto flex items-center gap-2">
           <Button size="sm" variant="outline" className="h-8 gap-1">
-            <ListFilter className="h-3.5 w-3.5" />
+            <Filter className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               Filter
             </span>
@@ -104,9 +116,9 @@ export function FileSharingClient() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Project Documents</CardTitle>
+          <CardTitle>All Uploaded Files</CardTitle>
           <CardDescription>
-            A central repository for owners and engineers to exchange files.
+            A central repository for all files uploaded across projects and leads.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -114,22 +126,41 @@ export function FileSharingClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>File Name</TableHead>
-                <TableHead className="hidden md:table-cell">Type</TableHead>
+                <TableHead className="hidden sm:table-cell">Type</TableHead>
+                <TableHead className="hidden md:table-cell">Associated With</TableHead>
                 <TableHead className="hidden md:table-cell">Uploaded By</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
-                <TableHead className="text-right">Size</TableHead>
+                <TableHead className="hidden lg:table-cell">Date</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {files.map((file) => (
+              {loading ? (
+                [...Array(5)].map((_,i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={6}><Skeleton className="h-5 w-full"/></TableCell>
+                  </TableRow>
+                ))
+              ) : files.map((file) => (
                 <TableRow key={file.id}>
                   <TableCell className="font-medium">{file.name}</TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     <Badge variant="outline">{file.type}</Badge>
                   </TableCell>
+                   <TableCell className="hidden md:table-cell">
+                    {file.projectId ? (
+                      <Link href={`/dashboard/owner/projects/${file.projectId}/files`} className="hover:underline">
+                        Project Document
+                      </Link>
+                    ) : file.leadId ? (
+                      <Link href={`/dashboard/crm/${file.leadId}`} className="hover:underline">
+                        Lead: {file.leadName}
+                      </Link>
+                    ) : (
+                      'General Upload'
+                    )}
+                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
@@ -141,19 +172,13 @@ export function FileSharingClient() {
                           {file.uploadedBy.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{file.uploadedBy}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {file.role}
-                        </p>
-                      </div>
+                      <span className="text-xs">{file.uploadedBy}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {file.date}
+                  <TableCell className="hidden lg:table-cell">
+                    {formatDate(file.date)}
                   </TableCell>
-                  <TableCell className="text-right">{file.size}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button

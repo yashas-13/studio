@@ -11,6 +11,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 
 interface ProjectFile {
     id: string;
@@ -18,7 +19,7 @@ interface ProjectFile {
     type: "Image" | "Document" | "Spreadsheet" | string;
     url: string;
     size: string;
-    date: string;
+    date: any;
     projectId: string;
 }
 
@@ -53,8 +54,14 @@ export default function ProjectFilesPage() {
         }
     }, [id]);
 
-    const imageFiles = files.filter(f => f.type === 'Image');
-    const documentFiles = files.filter(f => f.type !== 'Image');
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    const documentFiles = files.filter(f => !f.type.startsWith('image/'));
+    
+    const formatDate = (timestamp: any) => {
+        if (!timestamp) return 'N/A';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return format(date, "PPP");
+    };
 
     return (
         <div className="flex flex-col gap-6">
@@ -74,21 +81,28 @@ export default function ProjectFilesPage() {
                 <CardContent>
                     {loading ? (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+                            {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square w-full" />)}
                         </div>
                     ) : imageFiles.length > 0 ? (
-                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                             {imageFiles.map(file => (
-                                <div key={file.id} className="relative aspect-square group">
-                                    <Image src={file.url || `https://placehold.co/400x400.png`} alt={file.name} fill={true} className="object-cover rounded-lg" data-ai-hint="construction site progress" />
-                                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2 text-xs rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {file.name}
+                                <div key={file.id} className="relative aspect-square group overflow-hidden rounded-lg">
+                                    <Image 
+                                        src={file.url || `https://placehold.co/400x400.png`} 
+                                        alt={file.name} 
+                                        fill={true} 
+                                        className="object-cover rounded-lg transition-transform duration-300 group-hover:scale-105" 
+                                        data-ai-hint="construction site progress" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                                        <p className="text-white text-xs font-semibold truncate">{file.name}</p>
+                                        <p className="text-white/80 text-xs">{formatDate(file.date)}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <p className="text-muted-foreground text-center">No photos found for this project.</p>
+                        <p className="text-muted-foreground text-center py-8">No photos found for this project.</p>
                     )}
                 </CardContent>
             </Card>
@@ -123,12 +137,12 @@ export default function ProjectFilesPage() {
                                         <TableCell className="font-medium">{file.name}</TableCell>
                                         <TableCell><Badge variant="secondary">{file.type}</Badge></TableCell>
                                         <TableCell className="text-right">{file.size}</TableCell>
-                                        <TableCell className="text-right">{file.date}</TableCell>
+                                        <TableCell className="text-right">{formatDate(file.date)}</TableCell>
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center">No documents found for this project.</TableCell>
+                                    <TableCell colSpan={4} className="text-center h-24">No documents found for this project.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>

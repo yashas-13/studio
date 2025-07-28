@@ -45,18 +45,23 @@ export async function addLeadNote(leadId: string, note: string) {
     revalidatePath(`/dashboard/crm/${leadId}`);
 }
 
-export async function addLeadDocument(leadId: string, fileName: string, fileType: string) {
+export async function addLeadDocument(leadId: string, leadName: string, fileName: string, fileType: string, fileSize: string) {
     if (!fileName.trim()) return;
-    // In a real app, you would upload the file to Firebase Storage and store the URL.
-    // For this example, we're just creating a record.
-    await addDoc(collection(db, 'leads', leadId, 'documents'), {
+
+    // Add to the centralized files collection
+    await addDoc(collection(db, 'files'), {
         name: fileName,
         type: fileType,
-        url: '#', // Placeholder URL
-        uploadedAt: serverTimestamp(),
-        uploadedBy: 'Anjali Sharma' // Placeholder user
+        size: fileSize,
+        url: '#', // Placeholder URL, in a real app this would be a Firebase Storage URL
+        date: new Date().toISOString(),
+        uploadedBy: 'Anjali Sharma', // Placeholder user
+        leadId: leadId,
+        leadName: leadName,
     });
-     await addDoc(collection(db, 'leads', leadId, 'activity'), {
+
+    // Log the activity on the lead's subcollection
+    await addDoc(collection(db, 'leads', leadId, 'activity'), {
         type: 'Note',
         content: `Document uploaded: ${fileName}.`,
         date: serverTimestamp(),
@@ -64,6 +69,7 @@ export async function addLeadDocument(leadId: string, fileName: string, fileType
     });
     revalidatePath(`/dashboard/crm/${leadId}`);
 }
+
 
 export async function reassignLead(leadId: string, oldAssignee: string, newAssignee: string) {
     const leadRef = doc(db, 'leads', leadId);

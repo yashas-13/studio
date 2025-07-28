@@ -32,7 +32,7 @@ export default function SalesAnalyticsPage() {
             setSalesReps(repsData);
         });
 
-        const qLeads = query(collection(db, "leads"), orderBy("createdAt", "desc"));
+        const qLeads = query(collection(db, "leads"));
         const leadsUnsub = onSnapshot(qLeads, (snapshot) => {
             const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
             setLeads(leadsData);

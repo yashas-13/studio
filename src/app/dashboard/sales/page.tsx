@@ -91,9 +91,11 @@ export default function SalesDashboardPage() {
 
         if (!loggedInUserName) return;
 
-        const qLeads = query(collection(db, "leads"), where("assignedTo", "==", loggedInUserName), orderBy("createdAt", "desc"));
+        const qLeads = query(collection(db, "leads"), where("assignedTo", "==", loggedInUserName));
         const unsubscribeLeads = onSnapshot(qLeads, (snapshot) => {
           const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Lead[];
+          // Sort client-side
+          leadsData.sort((a, b) => b.createdAt?.toDate() - a.createdAt?.toDate());
           setLeads(leadsData);
           setLoading(false);
         });
@@ -122,7 +124,6 @@ export default function SalesDashboardPage() {
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
             const followUps = snapshot.docs
-              .filter(doc => doc.data().status !== 'Done')
               .map(doc => {
                 const taskData = doc.data();
                 const dueDate = new Date(taskData.dueDate);
@@ -140,7 +141,7 @@ export default function SalesDashboardPage() {
                     due: dueDate.toLocaleDateString(),
                     status: status,
                 }
-            });
+              }).filter(doc => doc.status !== 'Done');
             setUpcomingFollowUps(followUps as FollowUpTask[]);
         });
     

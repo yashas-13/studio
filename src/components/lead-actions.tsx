@@ -31,12 +31,15 @@ export default function LeadActions({ lead }: LeadActionsProps) {
 
     useEffect(() => {
         if (lead.id) {
-            const activityQuery = query(collection(db, 'leads', lead.id, 'activity'), orderBy('date', 'desc'));
+            // Firestore query without orderBy to avoid composite index requirement
+            const activityQuery = query(collection(db, 'leads', lead.id, 'activity'));
             const activityUnsub = onSnapshot(activityQuery, (snapshot) => {
                 const activitiesData: any[] = [];
                 snapshot.forEach(doc => {
                     activitiesData.push({ id: doc.id, ...doc.data() });
                 });
+                // Sort activities on the client side
+                activitiesData.sort((a, b) => b.date?.toDate() - a.date?.toDate());
                 setActivities(activitiesData);
             });
             return () => activityUnsub();

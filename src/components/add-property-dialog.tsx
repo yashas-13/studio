@@ -19,6 +19,7 @@ import { db, collection, addDoc, query, where, onSnapshot } from "@/lib/firebase
 import { useToast } from "@/hooks/use-toast";
 import { type Project } from "@/app/dashboard/owner/projects/page";
 import { type Tower } from "@/app/dashboard/owner/projects/[id]/towers/page";
+import { Property } from "@/lib/types";
 
 interface AddPropertyDialogProps {
     isOpen: boolean;
@@ -34,7 +35,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
     const [type, setType] = useState("");
     const [size, setSize] = useState("");
     const [price, setPrice] = useState("");
-    const [status, setStatus] = useState<"Available" | "Booked" | "Sold">("Available");
+    const [status, setStatus] = useState<Property['status']>("Available");
     const [photo, setPhoto] = useState<File | null>(null);
     const [towers, setTowers] = useState<Tower[]>([]);
     const [loading, setLoading] = useState(false);
@@ -196,7 +197,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="status" className="text-right">Status</Label>
-                    <Select value={status} onValueChange={(value: "Available" | "Booked" | "Sold") => setStatus(value)}>
+                    <Select value={status} onValueChange={(value: Property['status']) => setStatus(value)}>
                         <SelectTrigger className="col-span-3">
                             <SelectValue />
                         </SelectTrigger>
@@ -204,6 +205,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
                             <SelectItem value="Available">Available</SelectItem>
                             <SelectItem value="Booked">Booked</SelectItem>
                             <SelectItem value="Sold">Sold</SelectItem>
+                            <SelectItem value="Hold">On Hold</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

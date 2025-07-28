@@ -11,7 +11,7 @@ export const PropertySchema = z.object({
   floor: z.number(),
   type: z.string(), // e.g., '2BHK'
   size: z.number(), // in sqft
-  status: z.enum(['Available', 'Booked', 'Sold']),
+  status: z.enum(['Available', 'Booked', 'Sold', 'Hold']),
   price: z.number(),
   photoUrl: z.string().nullable().optional(),
   bookedByLeadId: z.string().nullable().optional(),

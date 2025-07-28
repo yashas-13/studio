@@ -94,6 +94,7 @@ export default function InventoryPage() {
       case 'Available': return 'secondary';
       case 'Booked': return 'outline';
       case 'Sold': return 'destructive';
+      case 'Hold': return 'default';
       default: return 'default';
     }
   };
@@ -168,6 +169,7 @@ export default function InventoryPage() {
                         <SelectItem value="Available">Available</SelectItem>
                         <SelectItem value="Booked">Booked</SelectItem>
                         <SelectItem value="Sold">Sold</SelectItem>
+                        <SelectItem value="Hold">On Hold</SelectItem>
                     </SelectContent>
                 </Select>
                 <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>

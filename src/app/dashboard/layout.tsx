@@ -67,6 +67,7 @@ export default function DashboardLayout({
     { href: "/dashboard/owner/materials", icon: Package, label: "Materials" },
     { href: "/dashboard/users", icon: Users, label: "Users" },
     { href: "/dashboard/owner/sales", icon: Briefcase, label: "Sales" },
+    { href: "/dashboard/file-sharing", icon: FileArchive, label: "File Sharing" },
   ];
 
   const siteManagerNavLinks = [
@@ -110,5 +111,3 @@ export default function DashboardLayout({
     </div>
   );
 }
-
-    

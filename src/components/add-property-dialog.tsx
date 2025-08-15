@@ -15,11 +15,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { db, collection, addDoc, query, where, onSnapshot } from "@/lib/firebase";
+import { db, collection, addDoc, query, where } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { type Project } from "@/app/dashboard/owner/projects/page";
 import { type Tower } from "@/app/dashboard/owner/projects/[id]/towers/page";
 import { Property } from "@/lib/types";
+import { safeOnSnapshot } from "@/lib/safeOnSnapshot";
 
 interface AddPropertyDialogProps {
     isOpen: boolean;
@@ -44,7 +45,7 @@ export function AddPropertyDialog({ isOpen, onOpenChange, projects }: AddPropert
     useEffect(() => {
         if (projectId) {
             const q = query(collection(db, "towers"), where("projectId", "==", projectId));
-            const unsubscribe = onSnapshot(q, (snapshot) => {
+            const unsubscribe = safeOnSnapshot(q, (snapshot) => {
                 const towersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tower));
                 setTowers(towersData);
             });

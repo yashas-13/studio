@@ -43,6 +43,11 @@ export function LoginForm() {
     setUserId(''); // Reset user selection
     const usersForRole = allUsers.filter(user => user.role === selectedRole);
     setFilteredUsers(usersForRole);
+
+    // If there's only one user for the selected role, auto-select them.
+    if (usersForRole.length === 1) {
+        setUserId(usersForRole[0].id);
+    }
   };
 
   const handleLogin = (e: React.FormEvent) => {

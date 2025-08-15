@@ -1,6 +1,7 @@
 {
   "projects": {
-    "test": "supplysync-3dg7n"
+    "test": "supplysync-3dg7n",
+    "testing": "supplysync-m929o"
   },
   "targets": {},
   "etags": {}

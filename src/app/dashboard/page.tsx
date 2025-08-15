@@ -62,52 +62,8 @@ interface UsageLog {
 interface Project {
   id: string;
   name: string;
+  status: 'Planning' | 'In Progress' | 'Completed';
 }
-
-const sampleUsers = [
-    { name: "Sanjay Sharma", email: "sanjay.sharma@example.com", role: 'sitemanager' },
-    { name: "Aditya Verma", email: "aditya.verma@example.com", role: 'owner' },
-    { name: "Rajesh Gupta", email: "rajesh.gupta@example.com", role: 'entryguard' },
-    { name: "Anjali Sharma", email: "anjali.sharma@example.com", role: 'salesrep' },
-    { name: "Rohan Kumar", email: "rohan.kumar@example.com", role: 'salesrep' },
-];
-
-const sampleProjects = [
-    { name: "Downtown Tower", description: "45-story high-rise commercial building.", location: "Mumbai, MH", siteEngineer: "Sanjay Sharma", entryGuard: "Rajesh Gupta", status: 'In Progress', budget: 50000000, spent: 25000000, progress: 50, createdAt: new Date() },
-    { name: "North Bridge", description: "Suspension bridge construction over the river.", location: "Delhi, DL", siteEngineer: "Sanjay Sharma", entryGuard: "Rajesh Gupta", status: 'Planning', budget: 120000000, spent: 5000000, progress: 5, createdAt: new Date() },
-    { name: "Suburb Complex", description: "Residential complex with 5 towers.", location: "Bengaluru, KA", siteEngineer: "Sanjay Sharma", entryGuard: "Rajesh Gupta", status: 'Completed', budget: 80000000, spent: 78000000, progress: 100, createdAt: new Date() },
-];
-
-const sampleMaterials = [
-    { name: "Ready-Mix Concrete", quantity: 50, unit: "m³", supplier: "CEMEX", status: "Delivered", project: "Downtown Tower", lastUpdated: new Date().toISOString() },
-    { name: "Steel Rebar", quantity: 10, unit: "tons", supplier: "Gerdau", status: "Pending", project: "North Bridge", lastUpdated: new Date().toISOString() },
-    { name: "Plywood Sheets", quantity: 200, unit: "sheets", supplier: "Georgia-Pacific", status: "Delivered", project: "Downtown Tower", lastUpdated: new Date().toISOString() },
-    { name: "Electrical Wiring", quantity: 5000, unit: "ft", supplier: "Southwire", status: "Delayed", project: "Suburb Complex", lastUpdated: new Date().toISOString() },
-];
-
-const sampleLeads = [
-    { name: "Rohan Verma", email: "rohan.verma@email.com", phone: "+919876543210", status: "Warm", assignedTo: "Anjali Sharma", requirements: "3BHK with park view", createdAt: serverTimestamp() },
-    { name: "Priya Desai", email: "priya.desai@email.com", phone: "+919123456789", status: "Hot", assignedTo: "Rohan Kumar", requirements: "Looking for a penthouse", createdAt: serverTimestamp() },
-    { name: "Amit Patel", email: "amit.patel@email.com", phone: "+919988776655", status: "Hot", assignedTo: "Anjali Sharma", requirements: "Wants to book a 2BHK immediately", createdAt: serverTimestamp() },
-    { name: "Sunita Reddy", email: "sunita.reddy@email.com", phone: "+919654321098", status: "Cold", assignedTo: "Rohan Kumar", requirements: "Budget constraints", createdAt: serverTimestamp() }
-];
-
-const sampleProperties = [
-    // These will be auto-generated now if towers exist
-];
-
-const sampleTowers = [
-    { name: "Tower A", floors: 15, unitsPerFloor: 8, projectName: "Suburb Complex" },
-    { name: "Tower B", floors: 25, unitsPerFloor: 4, projectName: "Suburb Complex" },
-    { name: "Commercial Block", floors: 10, unitsPerFloor: 2, projectName: "Downtown Tower" },
-];
-
-
-const sampleFiles = [
-    { name: "Architectural-Plans-Rev2.pdf", type: "Document", uploadedBy: "Owner", role: "Owner", date: "2024-07-20", size: "12.5 MB", projectId: "" },
-    { name: "Structural-Calculations.xlsx", type: "Spreadsheet", uploadedBy: "Engineer", role: "Engineer", date: "2024-07-21", size: "2.1 MB", projectId: "" },
-    { name: "Site-Photo-2024-07-22.jpg", type: "Image", uploadedBy: "Site Admin", role: "Admin", date: "2024-07-22", size: "4.8 MB", projectId: "" },
-];
 
 export default function Dashboard() {
   const router = useRouter();
@@ -174,126 +130,6 @@ export default function Dashboard() {
         unsubscribeTasks();
     };
   }, [router]);
-
-  const seedDatabase = async () => {
-    try {
-        let seededCount = 0;
-        
-        for (const user of sampleUsers) {
-            const q = query(collection(db, "users"), where("email", "==", user.email));
-            const snap = await getDocs(q);
-            if (snap.empty) {
-                await addDoc(collection(db, "users"), user);
-                seededCount++;
-            }
-        }
-        
-        const projectDocs = await getDocs(collection(db, "projects"));
-        if (projectDocs.empty) {
-            for (const project of sampleProjects) {
-                await addDoc(collection(db, "projects"), project);
-                seededCount++;
-            }
-        }
-        const projectNameToId: {[key: string]: string} = {};
-        const projectSnapshot = await getDocs(collection(db, "projects"));
-        projectSnapshot.forEach(doc => {
-            projectNameToId[doc.data().name] = doc.id;
-        })
-
-        for (const material of sampleMaterials) {
-            const q = query(collection(db, "materials"), where("name", "==", material.name), where("project", "==", material.project));
-            const snap = await getDocs(q);
-            if (snap.empty) {
-                await addDoc(collection(db, "materials"), material);
-                seededCount++;
-            }
-        }
-      
-        for (const file of sampleFiles) {
-            const q = query(collection(db, "files"), where("name", "==", file.name));
-            const snap = await getDocs(q);
-            if (snap.empty) {
-                const projectIds = Object.values(projectNameToId);
-                const randomProjectId = projectIds[Math.floor(Math.random() * projectIds.length)];
-                await addDoc(collection(db, "files"), {...file, projectId: randomProjectId});
-                seededCount++;
-            }
-        }
-        
-        const leadDocs = await getDocs(collection(db, "leads"));
-        if(leadDocs.empty) {
-            for (const lead of sampleLeads) {
-                const q = query(collection(db, "leads"), where("email", "==", lead.email));
-                const snap = await getDocs(q);
-                if (snap.empty) {
-                    await addDoc(collection(db, "leads"), lead);
-                    seededCount++;
-                }
-            }
-        }
-
-
-        const towerDocs = await getDocs(collection(db, "towers"));
-        if (towerDocs.empty) {
-            for (const towerData of sampleTowers) {
-                const projectId = projectNameToId[towerData.projectName];
-                if (projectId) {
-                    const towerPayload = {
-                        name: towerData.name,
-                        floors: towerData.floors,
-                        unitsPerFloor: towerData.unitsPerFloor,
-                        projectId: projectId,
-                    };
-                    const towerRef = await addDoc(collection(db, "towers"), towerPayload);
-                    seededCount++;
-
-                    // Auto-generate units for the new tower
-                    for (let f = 1; f <= towerData.floors; f++) {
-                        for (let u = 1; u <= towerData.unitsPerFloor; u++) {
-                            const unitNumber = `${towerData.name.charAt(0)}-${f}${u.toString().padStart(2, '0')}`;
-                            const newProperty = {
-                                unitNumber: unitNumber,
-                                project: towerData.projectName,
-                                projectId: projectId,
-                                tower: towerData.name,
-                                towerId: towerRef.id,
-                                floor: f,
-                                type: '2BHK',
-                                size: 1200,
-                                price: 7500000,
-                                status: 'Available',
-                                photoUrl: null,
-                            };
-                            await addDoc(collection(db, 'properties'), newProperty);
-                            seededCount++;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (seededCount > 0) {
-            toast({
-                title: "Success",
-                description: `Added ${seededCount} new sample documents.`,
-            });
-        } else {
-             toast({
-                title: "Database is up to date",
-                description: "All sample data already exists.",
-            });
-        }
-
-    } catch (error) {
-        console.error("Error seeding database:", error);
-        toast({
-            title: "Error",
-            description: "Could not seed the database.",
-            variant: "destructive",
-        })
-    }
-  };
   
   const formatLastUpdated = (dateString: string) => {
     if (!dateString || isNaN(new Date(dateString).getTime())) {
@@ -311,13 +147,7 @@ export default function Dashboard() {
   return (
     <>
       <div className="flex items-center mb-4">
-        <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
-        <div className="ml-auto">
-            <Button onClick={seedDatabase}>
-                <Database className="mr-2 h-4 w-4" />
-                Seed Sample Data
-            </Button>
-        </div>
+        <h1 className="text-lg font-semibold md:text-2xl">Site Manager Dashboard</h1>
       </div>
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>

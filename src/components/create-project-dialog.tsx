@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { db, collection, addDoc, serverTimestamp, query, where } from "@/lib/firebase";
+import { db, collection, addDoc, serverTimestamp, query, where, type QueryDocumentSnapshot } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { safeOnSnapshot } from "@/lib/safeOnSnapshot";
 
@@ -47,7 +47,7 @@ export function CreateProjectDialog({ isOpen, onOpenChange }: CreateProjectDialo
         const qUsers = collection(db, "users");
         const unsubscribe = safeOnSnapshot(qUsers, (querySnapshot) => {
             const allUsers: User[] = [];
-            querySnapshot.forEach((doc: { id: any; }) => {
+            querySnapshot.forEach((doc: QueryDocumentSnapshot) => {
                 allUsers.push({ id: doc.id, ...doc.data() } as User);
             });
             setSiteManagers(allUsers.filter(u => u.role === 'sitemanager'));
